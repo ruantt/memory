@@ -12,36 +12,28 @@ import { uiCopy } from "@/lib/copy/zh-cn";
 import type { KnowledgeItem } from "@/lib/types";
 
 export function LibraryPage() {
-  const { items, addKnowledge } = useKnowledge();
+  const { items, addKnowledge, deleteKnowledge } = useKnowledge();
   const filtersCopy = uiCopy.library.filters;
   const emptyStateCopy = uiCopy.library.emptyState;
   const [searchValue, setSearchValue] = useState("");
   const deferredSearchValue = useDeferredValue(searchValue);
-  const [selectedNotebook, setSelectedNotebook] = useState<string>(
-    filtersCopy.allNotebooks
-  );
-  const [selectedTopic, setSelectedTopic] = useState<string>(
-    filtersCopy.allTopics
-  );
+  const [selectedTopic, setSelectedTopic] = useState<string>(filtersCopy.allTopics);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [activeItem, setActiveItem] = useState<KnowledgeItem | null>(null);
 
-  const notebooks = [
-    filtersCopy.allNotebooks,
-    ...Array.from(new Set(items.map((item) => item.notebook))),
-  ];
-  const topics = [
-    filtersCopy.allTopics,
-    ...Array.from(new Set(items.map((item) => item.topic))),
-  ];
+  const topicOptions = Array.from(
+    new Set([filtersCopy.defaultTopic, ...items.map((item) => item.topic)])
+  );
+  const sidebarTopics = [filtersCopy.allTopics, ...topicOptions];
+  const effectiveSelectedTopic = sidebarTopics.includes(selectedTopic)
+    ? selectedTopic
+    : filtersCopy.allTopics;
   const normalizedQuery = deferredSearchValue.trim().toLowerCase();
 
   const filteredItems = items.filter((item) => {
-    const matchesNotebook =
-      selectedNotebook === filtersCopy.allNotebooks ||
-      item.notebook === selectedNotebook;
     const matchesTopic =
-      selectedTopic === filtersCopy.allTopics || item.topic === selectedTopic;
+      effectiveSelectedTopic === filtersCopy.allTopics ||
+      item.topic === effectiveSelectedTopic;
     const matchesSearch =
       normalizedQuery.length === 0 ||
       [item.title, item.summary, item.content, item.tags.join(" ")]
@@ -49,27 +41,29 @@ export function LibraryPage() {
         .toLowerCase()
         .includes(normalizedQuery);
 
-    return matchesNotebook && matchesTopic && matchesSearch;
+    return matchesTopic && matchesSearch;
   });
 
-  function handleCreateKnowledge(values: { title: string; content: string }) {
-    addKnowledge({
-      title: values.title,
-      content: values.content,
-      notebook: selectedNotebook,
-      topic: selectedTopic,
-    });
+  function handleCreateKnowledge(values: {
+    title: string;
+    content: string;
+    topic: string;
+    tags: string[];
+  }) {
+    addKnowledge(values);
+  }
+
+  function handleDeleteKnowledge(id: string) {
+    deleteKnowledge(id);
+    setActiveItem((currentItem) => (currentItem?.id === id ? null : currentItem));
   }
 
   return (
     <div className="min-h-screen bg-[#f6f5f2] p-4 md:p-6">
       <div className="mx-auto flex max-w-[1600px] flex-col gap-4 lg:flex-row">
         <Sidebar
-          notebooks={notebooks}
-          topics={topics}
-          selectedNotebook={selectedNotebook}
-          selectedTopic={selectedTopic}
-          onNotebookChange={setSelectedNotebook}
+          topics={sidebarTopics}
+          selectedTopic={effectiveSelectedTopic}
           onTopicChange={setSelectedTopic}
           totalNotes={items.length}
         />
@@ -101,11 +95,12 @@ export function LibraryPage() {
       </div>
 
       <ImportModal
+        key={`import-${effectiveSelectedTopic}-${isImportOpen ? "open" : "closed"}`}
         open={isImportOpen}
         onOpenChange={setIsImportOpen}
         onSave={handleCreateKnowledge}
-        selectedNotebook={selectedNotebook}
-        selectedTopic={selectedTopic}
+        selectedTopic={effectiveSelectedTopic}
+        availableTopics={topicOptions}
       />
       <DetailDrawer
         item={activeItem}
@@ -115,6 +110,7 @@ export function LibraryPage() {
             setActiveItem(null);
           }
         }}
+        onDelete={handleDeleteKnowledge}
       />
     </div>
   );

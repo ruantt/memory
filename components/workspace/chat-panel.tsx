@@ -18,6 +18,9 @@ export function ChatPanel({ initialMessages, sourceCitations }: ChatPanelProps) 
   const chatCopy = uiCopy.workspace.chat;
   const [messages, setMessages] = useState(initialMessages);
   const [prompt, setPrompt] = useState("");
+  const sourceCitationMap = new Map(
+    sourceCitations.map((citation) => [citation.id, citation.title])
+  );
 
   function handleSend() {
     const trimmedPrompt = prompt.trim();
@@ -47,8 +50,8 @@ export function ChatPanel({ initialMessages, sourceCitations }: ChatPanelProps) 
   }
 
   return (
-    <section className="flex min-h-[72vh] flex-col rounded-[28px] border border-border/70 bg-background/95">
-      <div className="border-b border-border/70 p-5">
+    <section className="flex min-h-[72vh] flex-col overflow-hidden rounded-[28px] border border-border/70 bg-background/95 xl:min-h-0 xl:h-full">
+      <div className="shrink-0 border-b border-border/70 p-5">
         <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">
           <MessageSquareText className="size-3.5" />
           {chatCopy.eyebrow}
@@ -59,9 +62,15 @@ export function ChatPanel({ initialMessages, sourceCitations }: ChatPanelProps) 
         </p>
       </div>
 
-      <div className="flex-1 space-y-4 overflow-y-auto p-5">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
         {messages.map((message) => {
           const isAssistant = message.role === "assistant";
+          const resolvedCitations = message.citations
+            .filter((citation) => sourceCitationMap.has(citation.id))
+            .map((citation) => ({
+              ...citation,
+              title: sourceCitationMap.get(citation.id) ?? citation.title,
+            }));
 
           return (
             <div
@@ -78,13 +87,18 @@ export function ChatPanel({ initialMessages, sourceCitations }: ChatPanelProps) 
               >
                 <p className="whitespace-pre-wrap">{message.content}</p>
 
-                {isAssistant && message.citations.length > 0 ? (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {message.citations.map((citation) => (
-                      <Badge key={citation.id} variant="outline" className="rounded-full">
-                        {citation.title}
-                      </Badge>
-                    ))}
+                {isAssistant && resolvedCitations.length > 0 ? (
+                  <div className="mt-4 space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {chatCopy.citationsLabel}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {resolvedCitations.map((citation) => (
+                        <Badge key={citation.id} variant="outline" className="rounded-full">
+                          {citation.title}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 ) : null}
               </div>
@@ -93,7 +107,7 @@ export function ChatPanel({ initialMessages, sourceCitations }: ChatPanelProps) 
         })}
       </div>
 
-      <div className="border-t border-border/70 bg-muted/20 p-4">
+      <div className="shrink-0 border-t border-border/70 bg-background/95 p-4">
         <div className="rounded-[24px] border border-border/70 bg-background p-3">
           <Textarea
             value={prompt}
@@ -103,7 +117,9 @@ export function ChatPanel({ initialMessages, sourceCitations }: ChatPanelProps) 
           />
 
           <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-muted-foreground">{chatCopy.hint}</p>
+            <p className="text-xs text-muted-foreground">
+              {sourceCitations.length > 0 ? chatCopy.hint : chatCopy.emptyHint}
+            </p>
             <Button onClick={handleSend} disabled={!prompt.trim()}>
               <SendHorizontal className="size-4" />
               {chatCopy.send}

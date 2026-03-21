@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { BookOpenText, Clock3, Tags } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
@@ -21,14 +21,33 @@ type DetailDrawerProps = {
   item: KnowledgeItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onDelete: (id: string) => void;
 };
 
-export function DetailDrawer({ item, open, onOpenChange }: DetailDrawerProps) {
+export function DetailDrawer({
+  item,
+  open,
+  onOpenChange,
+  onDelete,
+}: DetailDrawerProps) {
   if (!item) {
     return null;
   }
 
+  const currentItem = item;
   const drawerCopy = uiCopy.library.drawer;
+
+  function handleDelete() {
+    const shouldDelete = window.confirm(
+      drawerCopy.deleteConfirm(currentItem.title)
+    );
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    onDelete(currentItem.id);
+  }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -36,10 +55,10 @@ export function DetailDrawer({ item, open, onOpenChange }: DetailDrawerProps) {
         <SheetHeader className="border-b border-border/70 pb-5 pr-12">
           <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">
             <BookOpenText className="size-3.5" />
-            {item.notebook}
+            {drawerCopy.eyebrow}
           </div>
-          <SheetTitle className="text-xl leading-8">{item.title}</SheetTitle>
-          <SheetDescription className="leading-6">{item.summary}</SheetDescription>
+          <SheetTitle className="text-xl leading-8">{currentItem.title}</SheetTitle>
+          <SheetDescription className="leading-6">{currentItem.summary}</SheetDescription>
         </SheetHeader>
 
         <div className="flex-1 space-y-6 overflow-y-auto p-4">
@@ -50,7 +69,7 @@ export function DetailDrawer({ item, open, onOpenChange }: DetailDrawerProps) {
                 {drawerCopy.createdAt}
               </div>
               <p className="mt-2 text-sm font-medium text-foreground">
-                {formatShortDate(item.createdAt)}
+                {formatShortDate(currentItem.createdAt)}
               </p>
             </div>
 
@@ -59,14 +78,14 @@ export function DetailDrawer({ item, open, onOpenChange }: DetailDrawerProps) {
                 <Tags className="size-3.5" />
                 {drawerCopy.topic}
               </div>
-              <p className="mt-2 text-sm font-medium text-foreground">{item.topic}</p>
+              <p className="mt-2 text-sm font-medium text-foreground">{currentItem.topic}</p>
             </div>
           </div>
 
           <section>
             <h3 className="text-sm font-medium text-foreground">{drawerCopy.tags}</h3>
             <div className="mt-3 flex flex-wrap gap-2">
-              {item.tags.map((tag) => (
+              {currentItem.tags.map((tag) => (
                 <Badge key={tag} variant="outline" className="rounded-full">
                   {tag}
                 </Badge>
@@ -79,14 +98,14 @@ export function DetailDrawer({ item, open, onOpenChange }: DetailDrawerProps) {
               {drawerCopy.originalContent}
             </h3>
             <div className="mt-3 rounded-[20px] border border-border/70 bg-muted/20 p-4 text-sm leading-7 whitespace-pre-wrap text-foreground">
-              {item.content}
+              {currentItem.content}
             </div>
           </section>
         </div>
 
         <SheetFooter className="border-t border-border/70 bg-background/95">
           <Link
-            href={`/workspace?source=${item.id}`}
+            href={`/workspace?source=${currentItem.id}`}
             className={cn(
               buttonVariants({ size: "lg" }),
               "w-full justify-center hover:bg-primary/90"
@@ -94,6 +113,9 @@ export function DetailDrawer({ item, open, onOpenChange }: DetailDrawerProps) {
           >
             {drawerCopy.askButton}
           </Link>
+          <Button variant="destructive" onClick={handleDelete} className="w-full">
+            {drawerCopy.deleteButton}
+          </Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>

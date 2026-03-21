@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useEffectEvent } from "react";
 import { ChatPanel } from "@/components/workspace/chat-panel";
 import { GenerationPanel } from "@/components/workspace/generation-panel";
 import { SourcesPanel } from "@/components/workspace/sources-panel";
@@ -12,19 +13,36 @@ type WorkspacePageProps = {
 };
 
 export function WorkspacePage({ focusedSourceId }: WorkspacePageProps) {
-  const { items } = useKnowledge();
+  const {
+    items,
+    workspaceSources,
+    addKnowledgeSources,
+    addLocalFiles,
+    addLinkSource,
+    updateLinkSource,
+    removeWorkspaceSource,
+  } = useKnowledge();
   const workspaceHeaderCopy = uiCopy.workspace.header;
-  const focusedSource = items.find((item) => item.id === focusedSourceId);
-  const remainingSources = items.filter((item) => item.id !== focusedSourceId);
-  const selectedSources = focusedSource
-    ? [focusedSource, ...remainingSources.slice(0, 2)]
-    : items.slice(0, 3);
-  const sourceCitations = selectedSources.map(({ id, title }) => ({ id, title }));
+  const focusedSource = workspaceSources.find((source) => source.id === focusedSourceId);
+  const sourceCitations = workspaceSources.map(({ id, title }) => ({ id, title }));
+  const syncFocusedKnowledge = useEffectEvent((sourceId: string) => {
+    if (items.some((item) => item.id === sourceId)) {
+      addKnowledgeSources([sourceId]);
+    }
+  });
+
+  useEffect(() => {
+    if (!focusedSourceId) {
+      return;
+    }
+
+    syncFocusedKnowledge(focusedSourceId);
+  }, [focusedSourceId]);
 
   return (
     <div className="min-h-screen bg-[#f6f5f2] p-4 md:p-6">
-      <div className="mx-auto max-w-[1600px]">
-        <header className="mb-4 rounded-[28px] border border-border/70 bg-background/95 px-5 py-4">
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-4 xl:h-[calc(100dvh-3rem)] xl:overflow-hidden">
+        <header className="shrink-0 rounded-[28px] border border-border/70 bg-background/95 px-5 py-4">
           <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">
             {workspaceHeaderCopy.eyebrow}
           </p>
@@ -47,12 +65,22 @@ export function WorkspacePage({ focusedSourceId }: WorkspacePageProps) {
           </div>
         </header>
 
-        <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_340px]">
-          <SourcesPanel sources={selectedSources} />
+        <div className="grid gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[300px_minmax(0,1fr)_360px]">
+          <SourcesPanel
+            knowledgeItems={items}
+            sources={workspaceSources}
+            focusedSourceId={focusedSourceId}
+            onAddKnowledgeSources={addKnowledgeSources}
+            onAddLocalFiles={addLocalFiles}
+            onAddLinkSource={addLinkSource}
+            onUpdateLinkSource={updateLinkSource}
+            onRemoveSource={removeWorkspaceSource}
+          />
           <ChatPanel initialMessages={initialMessages} sourceCitations={sourceCitations} />
           <GenerationPanel
             summaryParagraphs={generationOutputs.summary}
             prdSections={generationOutputs.prdOutline}
+            sourceCitations={sourceCitations}
           />
         </div>
       </div>
