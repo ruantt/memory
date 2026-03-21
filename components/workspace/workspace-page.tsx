@@ -6,7 +6,6 @@ import { GenerationPanel } from "@/components/workspace/generation-panel";
 import { SourcesPanel } from "@/components/workspace/sources-panel";
 import { useKnowledge } from "@/components/providers/knowledge-provider";
 import { uiCopy } from "@/lib/copy/zh-cn";
-import { generationOutputs, initialMessages } from "@/lib/mock-data";
 
 type WorkspacePageProps = {
   focusedSourceId?: string;
@@ -76,11 +75,13 @@ export function WorkspacePage({ focusedSourceId }: WorkspacePageProps) {
             onUpdateLinkSource={updateLinkSource}
             onRemoveSource={removeWorkspaceSource}
           />
-          <ChatPanel initialMessages={initialMessages} sourceCitations={sourceCitations} />
-          <GenerationPanel
-            summaryParagraphs={generationOutputs.summary}
-            prdSections={generationOutputs.prdOutline}
+          <ChatPanel
             sourceCitations={sourceCitations}
+            selectedSources={workspaceSources}
+          />
+          <GenerationPanel
+            sourceCitations={sourceCitations}
+            selectedSources={workspaceSources}
           />
         </div>
       </div>

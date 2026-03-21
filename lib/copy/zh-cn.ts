@@ -39,7 +39,7 @@ export const uiCopy = {
     },
     modal: {
       title: "新增知识",
-      description: "添加一条本地知识记录，当前只写入前端本地状态。",
+      description: "添加一条本地知识记录，保存后会先经 AI 整理，再写入当前本地状态。",
       titleLabel: "标题",
       titlePlaceholder: "未命名知识",
       contentLabel: "内容",
@@ -134,14 +134,12 @@ export const uiCopy = {
     chat: {
       eyebrow: "对话",
       title: "基于已选资料提问",
-      description: "回复内容仍为模拟数据，但会跟随当前资料更新引用来源。",
+      description: "回答只基于左侧已选资料，资料不足时会明确说明。",
       citationsLabel: "引用来源",
       inputPlaceholder: "输入你的问题，基于这些资料继续展开...",
-      hint: "当前仅为本地模拟交互，不会发起模型或后端请求。",
-      emptyHint: "尚未选择资料，当前发送仅用于演示，不会附带引用来源。",
+      hint: "回答仅使用当前已选资料，不做外部抓取或额外补充。",
+      emptyHint: "尚未选择资料，先在左侧添加参考资料。",
       send: "发送",
-      mockResponse:
-        "模拟回复：当前工作台只接了本地前端交互。真实版本里，这里会基于已选资料生成回答，并返回对应引用。",
     },
     generation: {
       eyebrow: "生成",

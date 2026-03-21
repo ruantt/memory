@@ -25,7 +25,7 @@ type ImportModalProps = {
     content: string;
     topic: string;
     tags: string[];
-  }) => void;
+  }) => Promise<void> | void;
   selectedTopic: string;
   availableTopics: string[];
 };
@@ -53,8 +53,15 @@ export function ImportModal({
   const [topic, setTopic] = useState(resolvedTopic);
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      setSubmitError("");
+      setIsSaving(false);
+    }
+
     onOpenChange(nextOpen);
   }
 
@@ -95,10 +102,10 @@ export function ImportModal({
     appendTags(tagInput);
   }
 
-  function handleSave() {
+  async function handleSave() {
     const trimmedContent = content.trim();
 
-    if (!trimmedContent) {
+    if (!trimmedContent || isSaving) {
       return;
     }
 
@@ -109,13 +116,24 @@ export function ImportModal({
       .filter(Boolean);
     const nextTags = Array.from(new Set([...tags, ...pendingTags]));
 
-    onSave({
-      title: title.trim(),
-      content: trimmedContent,
-      topic: normalizedTopic,
-      tags: nextTags.length > 0 ? nextTags : [normalizedTopic],
-    });
-    onOpenChange(false);
+    setSubmitError("");
+    setIsSaving(true);
+
+    try {
+      await onSave({
+        title: title.trim(),
+        content: trimmedContent,
+        topic: normalizedTopic,
+        tags: nextTags,
+      });
+      onOpenChange(false);
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : "AI 整理失败，请稍后再试。"
+      );
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -231,11 +249,16 @@ export function ImportModal({
         </div>
 
         <DialogFooter className="shrink-0 border-t border-border/70 bg-muted/30 px-6 py-4">
+          {submitError ? (
+            <p className="mr-auto text-sm text-destructive">{submitError}</p>
+          ) : isSaving ? (
+            <p className="mr-auto text-sm text-muted-foreground">AI 正在整理内容...</p>
+          ) : null}
           <DialogClose render={<Button variant="outline" />}>
             {uiCopy.common.cancel}
           </DialogClose>
-          <Button onClick={handleSave} disabled={!content.trim()}>
-            {modalCopy.save}
+          <Button onClick={handleSave} disabled={isSaving || !content.trim()}>
+            {isSaving ? "AI 整理中..." : modalCopy.save}
           </Button>
         </DialogFooter>
       </DialogContent>

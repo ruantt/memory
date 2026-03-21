@@ -21,6 +21,7 @@ type WorkspaceSourceBase = {
   id: string;
   title: string;
   summary?: string;
+  content?: string;
   topic?: string;
   tags?: string[];
   note?: string;

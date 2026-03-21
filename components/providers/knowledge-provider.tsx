@@ -13,6 +13,7 @@ import type {
 
 type CreateKnowledgeInput = {
   title?: string;
+  summary?: string;
   content: string;
   topic: string;
   tags: string[];
@@ -54,6 +55,7 @@ function createKnowledgeSource(item: KnowledgeItem): KnowledgeSource {
     knowledgeId: item.id,
     title: item.title,
     summary: item.summary,
+    content: item.content,
     topic: item.topic,
     tags: item.tags,
     createdAt: item.createdAt,
@@ -100,17 +102,24 @@ export function KnowledgeProvider({
     initialKnowledgeItems.slice(0, 2).map(createKnowledgeSource)
   );
 
-  const addKnowledge = ({ title, content, topic, tags }: CreateKnowledgeInput) => {
+  const addKnowledge = ({
+    title,
+    summary,
+    content,
+    topic,
+    tags,
+  }: CreateKnowledgeInput) => {
     const nextTopic =
       topic === filtersCopy.allTopics ? filtersCopy.defaultTopic : topic;
     const trimmedTitle = title?.trim();
+    const trimmedSummary = summary?.trim();
     const trimmedContent = content.trim();
     const normalizedTags = tags.map((tag) => tag.trim()).filter(Boolean);
 
     const newItem: KnowledgeItem = {
       id: crypto.randomUUID(),
       title: trimmedTitle || filtersCopy.untitledNote,
-      summary: createSummary(trimmedContent),
+      summary: trimmedSummary || createSummary(trimmedContent),
       content: trimmedContent,
       tags: normalizedTags.length > 0 ? normalizedTags : [nextTopic],
       createdAt: new Date().toISOString(),

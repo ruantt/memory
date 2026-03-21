@@ -2,51 +2,92 @@
 
 import { useState } from "react";
 import { MessageSquareText, SendHorizontal } from "lucide-react";
+import { chatWithWorkspace } from "@/lib/ai/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { uiCopy } from "@/lib/copy/zh-cn";
-import type { Citation, Message } from "@/lib/types";
+import type { Citation, Message, WorkspaceSource } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type ChatPanelProps = {
-  initialMessages: Message[];
   sourceCitations: Citation[];
+  selectedSources: WorkspaceSource[];
 };
 
-export function ChatPanel({ initialMessages, sourceCitations }: ChatPanelProps) {
+export function ChatPanel({ sourceCitations, selectedSources }: ChatPanelProps) {
   const chatCopy = uiCopy.workspace.chat;
-  const [messages, setMessages] = useState(initialMessages);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [prompt, setPrompt] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const sourceCitationMap = new Map(
     sourceCitations.map((citation) => [citation.id, citation.title])
   );
 
-  function handleSend() {
+  async function handleSend() {
     const trimmedPrompt = prompt.trim();
 
-    if (!trimmedPrompt) {
+    if (!trimmedPrompt || isLoading) {
       return;
     }
 
-    const nextMessages: Message[] = [
-      ...messages,
+    const userMessage: Message = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: trimmedPrompt,
+      citations: [],
+    };
+    const pendingMessageId = crypto.randomUUID();
+
+    setMessages((currentMessages) => [
+      ...currentMessages,
+      userMessage,
       {
-        id: crypto.randomUUID(),
-        role: "user",
-        content: trimmedPrompt,
+        id: pendingMessageId,
+        role: "assistant",
+        content: "正在基于已选资料生成回答...",
         citations: [],
       },
-      {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: chatCopy.mockResponse,
-        citations: sourceCitations.slice(0, 2),
-      },
-    ];
-
-    setMessages(nextMessages);
+    ]);
     setPrompt("");
+
+    setIsLoading(true);
+
+    try {
+      const response = await chatWithWorkspace({
+        question: trimmedPrompt,
+        selectedSources,
+      });
+
+      setMessages((currentMessages) =>
+        currentMessages.map((message) =>
+          message.id === pendingMessageId
+            ? {
+                ...message,
+                content: response.answer,
+                citations: response.citations,
+              }
+            : message
+        )
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "问答失败，请稍后再试。";
+
+      setMessages((currentMessages) =>
+        currentMessages.map((currentMessage) =>
+          currentMessage.id === pendingMessageId
+            ? {
+                ...currentMessage,
+                content: message,
+                citations: [],
+              }
+            : currentMessage
+        )
+      );
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -63,6 +104,14 @@ export function ChatPanel({ initialMessages, sourceCitations }: ChatPanelProps) 
       </div>
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
+        {messages.length === 0 ? (
+          <div className="rounded-[22px] border border-dashed border-border/70 bg-muted/20 p-4 text-sm leading-7 text-muted-foreground">
+            {sourceCitations.length > 0
+              ? "已接入真实问答。现在可以基于左侧已选资料直接提问。"
+              : "先在左侧选择资料，再开始提问。"}
+          </div>
+        ) : null}
+
         {messages.map((message) => {
           const isAssistant = message.role === "assistant";
           const resolvedCitations = message.citations
@@ -118,11 +167,15 @@ export function ChatPanel({ initialMessages, sourceCitations }: ChatPanelProps) 
 
           <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted-foreground">
-              {sourceCitations.length > 0 ? chatCopy.hint : chatCopy.emptyHint}
+              {isLoading
+                ? "AI 正在基于已选资料生成回答..."
+                : sourceCitations.length > 0
+                  ? chatCopy.hint
+                  : chatCopy.emptyHint}
             </p>
-            <Button onClick={handleSend} disabled={!prompt.trim()}>
+            <Button onClick={handleSend} disabled={isLoading || !prompt.trim()}>
               <SendHorizontal className="size-4" />
-              {chatCopy.send}
+              {isLoading ? "回答中..." : chatCopy.send}
             </Button>
           </div>
         </div>

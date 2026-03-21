@@ -1,4 +1,4 @@
-import type { KnowledgeItem, Message } from "@/lib/types";
+import type { KnowledgeItem } from "@/lib/types";
 
 export const initialKnowledgeItems: KnowledgeItem[] = [
   {
@@ -52,68 +52,3 @@ export const initialKnowledgeItems: KnowledgeItem[] = [
     topic: "快速记录",
   },
 ];
-
-export const initialMessages: Message[] = [
-  {
-    id: "msg-1",
-    role: "user",
-    content: "这些知识里，最适合沉淀成 PRD 输入的内容有哪些？",
-    citations: [],
-  },
-  {
-    id: "msg-2",
-    role: "assistant",
-    content:
-      "优先保留和决策直接相关的信息，比如用户痛点出现的场景、成功信号，以及竞品在关键路径上的策略取舍。这些内容更适合进入 PRD 的问题背景、目标和方案边界部分。",
-    citations: [
-      { id: "note-user-interview", title: "用户访谈里最该沉淀的三类信息" },
-      { id: "note-competitor-review", title: "竞品分析不该只记功能清单" },
-    ],
-  },
-  {
-    id: "msg-3",
-    role: "user",
-    content: "如果要让 AI 帮我继续整理，最好的提问方式是什么？",
-    citations: [],
-  },
-  {
-    id: "msg-4",
-    role: "assistant",
-    content:
-      "先把你已经确认的判断写出来，再明确希望 AI 输出的形式，例如总结、提纲或 PRD 草稿。这样工作台生成的内容会更贴近你的真实意图，而不是泛泛地重复资料。",
-    citations: [
-      { id: "note-ai-writing", title: "AI 生成内容前，先写自己的判断" },
-      { id: "note-prd-outline", title: "PRD 开头部分最好先写什么" },
-    ],
-  },
-];
-
-export const generationOutputs = {
-  summary: [
-    "当前知识更偏向产品规划和内容整理场景，重点都在于把原始信息压缩成可复用的决策材料，而不是简单归档。",
-    "如果继续扩展这个知识库，最适合优先沉淀的仍然是用户场景、需求边界、策略取舍，以及能够直接进入 PRD 的结构化结论。",
-  ],
-  prdOutline: [
-    {
-      heading: "问题",
-      items: [
-        "用户访谈、竞品分析和快速记录分散在不同笔记里，后续整理需求时难以快速复用。",
-        "团队需要一个轻量工作台，把知识卡片、引用来源和生成结果放在同一视图里。",
-      ],
-    },
-    {
-      heading: "目标",
-      items: [
-        "让用户可以按主题管理知识，并快速查看摘要、标签和原始内容。",
-        "支持围绕已选知识进行提问、总结和 PRD 提纲生成。",
-      ],
-    },
-    {
-      heading: "最小版本范围",
-      items: [
-        "本地模拟知识库，包含新增、搜索、详情查看和删除。",
-        "工作台三栏布局，展示已选资料、对话记录和标签页生成结果。",
-      ],
-    },
-  ],
-};

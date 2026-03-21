@@ -8,6 +8,7 @@ import { KnowledgeCard } from "@/components/library/knowledge-card";
 import { Sidebar } from "@/components/library/sidebar";
 import { TopBar } from "@/components/library/top-bar";
 import { useKnowledge } from "@/components/providers/knowledge-provider";
+import { enrichKnowledge } from "@/lib/ai/api";
 import { uiCopy } from "@/lib/copy/zh-cn";
 import type { KnowledgeItem } from "@/lib/types";
 
@@ -44,13 +45,25 @@ export function LibraryPage() {
     return matchesTopic && matchesSearch;
   });
 
-  function handleCreateKnowledge(values: {
+  async function handleCreateKnowledge(values: {
     title: string;
     content: string;
     topic: string;
     tags: string[];
   }) {
-    addKnowledge(values);
+    const enriched = await enrichKnowledge({
+      title: values.title,
+      content: values.content,
+      topic: values.topic,
+      tags: values.tags,
+    });
+
+    addKnowledge({
+      ...values,
+      title: enriched.title,
+      summary: enriched.summary,
+      tags: enriched.tags,
+    });
   }
 
   function handleDeleteKnowledge(id: string) {
