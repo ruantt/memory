@@ -1,5 +1,6 @@
 import { Sparkles } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { uiCopy } from "@/lib/copy/zh-cn";
 
 type GenerationPanelProps = {
   summaryParagraphs: string[];
@@ -13,24 +14,28 @@ export function GenerationPanel({
   summaryParagraphs,
   prdSections,
 }: GenerationPanelProps) {
+  const generationCopy = uiCopy.workspace.generation;
+
   return (
     <aside className="flex h-full flex-col rounded-[28px] border border-border/70 bg-background/95">
       <div className="border-b border-border/70 p-5">
         <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">
           <Sparkles className="size-3.5" />
-          Generate
+          {generationCopy.eyebrow}
         </div>
-        <h2 className="mt-2 text-lg font-semibold">Mock output panel</h2>
+        <h2 className="mt-2 text-lg font-semibold">{generationCopy.title}</h2>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Switch between a lightweight summary and a PRD-oriented outline.
+          {generationCopy.description}
         </p>
       </div>
 
       <Tabs defaultValue="summary" className="flex flex-1 flex-col">
         <div className="px-5 pt-5">
           <TabsList className="grid h-10 w-full grid-cols-2 rounded-xl">
-            <TabsTrigger value="summary">Summary</TabsTrigger>
-            <TabsTrigger value="prd-outline">PRD Outline</TabsTrigger>
+            <TabsTrigger value="summary">{generationCopy.summaryTab}</TabsTrigger>
+            <TabsTrigger value="prd-outline">
+              {generationCopy.prdOutlineTab}
+            </TabsTrigger>
           </TabsList>
         </div>
 

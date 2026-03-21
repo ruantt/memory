@@ -1,0 +1,85 @@
+export const uiCopy = {
+  metadata: {
+    title: "记忆库",
+    description: "一个克制、清晰、可继续扩展的个人知识库最小版本。",
+  },
+  library: {
+    filters: {
+      allNotebooks: "全部知识本",
+      allTopics: "全部主题",
+      defaultNotebook: "收集箱",
+      defaultTopic: "快速记录",
+      untitledNote: "未命名知识",
+    },
+    sidebar: {
+      badge: "个人知识库",
+      title: "记忆库",
+      description: "一个轻量的知识空间，用来整理笔记、资料和 AI 生成草稿。",
+      workspaceButton: "工作台",
+      statsTitle: (count: number) => `知识库中共有 ${count} 条知识`,
+      statsDescription: "保持内容精简、可搜索，也更容易在后续继续复用。",
+      notebooks: "知识本",
+      topics: "主题",
+    },
+    topBar: {
+      eyebrow: "知识库",
+      title: "把知识整理成可复用的卡片",
+      resultCount: (count: number) => `当前显示 ${count} 条知识，可随时检索、查看和继续生成。`,
+      searchPlaceholder: "搜索标题、摘要、内容或标签",
+      createButton: "新增知识",
+    },
+    emptyState: {
+      title: "当前筛选下没有知识",
+      description: "可以换个关键词、切换知识本或主题，或者直接新增一条知识。",
+    },
+    modal: {
+      title: "新增知识",
+      description: "添加一条本地知识记录，当前只写入前端本地状态。",
+      titleLabel: "标题",
+      titlePlaceholder: "未命名知识",
+      contentLabel: "内容",
+      contentPlaceholder: "粘贴或输入这条知识的原始内容...",
+      locationPrefix: "这条知识将归入",
+      cancel: "取消",
+      save: "保存",
+    },
+    drawer: {
+      createdAt: "创建时间",
+      topic: "主题",
+      tags: "标签",
+      originalContent: "原始内容",
+      askButton: "基于这条提问",
+    },
+  },
+  workspace: {
+    header: {
+      eyebrow: "工作台",
+      title: "围绕已选知识提问、整理与生成",
+      description: "三栏最小版本工作台，包含模拟对话、引用来源和生成结果。",
+      focusedSourcePrefix: "当前焦点资料：",
+    },
+    sources: {
+      back: "返回知识库",
+      eyebrow: "参考资料",
+      title: "已选资料",
+      description: (count: number) => `当前有 ${count} 条知识作为本次工作台参考。`,
+    },
+    chat: {
+      eyebrow: "对话",
+      title: "基于已选知识提问",
+      description: "回复内容仍为模拟数据，但会展示对应的引用来源。",
+      inputPlaceholder: "输入你的问题，基于这些知识继续展开...",
+      hint: "当前仅为本地模拟交互，不会发起模型或后端请求。",
+      send: "发送",
+      mockResponse:
+        "模拟回复：当前工作台只接了本地前端交互。真实版本里，这里会基于已选知识生成回答，并返回对应引用。",
+    },
+    generation: {
+      eyebrow: "生成",
+      title: "结果面板",
+      description: "在轻量总结和 PRD 提纲之间切换查看。",
+      summaryTab: "总结",
+      prdOutlineTab: "PRD 提纲",
+    },
+  },
+} as const;

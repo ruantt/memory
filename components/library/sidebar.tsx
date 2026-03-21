@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BookCopy, FolderKanban, Layers3, Sparkles } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { uiCopy } from "@/lib/copy/zh-cn";
 import { cn } from "@/lib/utils";
 
 type SidebarProps = {
@@ -67,17 +68,19 @@ export function Sidebar({
   onTopicChange,
   totalNotes,
 }: SidebarProps) {
+  const sidebarCopy = uiCopy.library.sidebar;
+
   return (
     <aside className="w-full rounded-[28px] border border-border/70 bg-background/95 p-5 md:max-w-[280px]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">
             <BookCopy className="size-3.5" />
-            Personal KB
+            {sidebarCopy.badge}
           </div>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight">Memory</h1>
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight">{sidebarCopy.title}</h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            A restrained library for notes, references, and AI-assisted drafting.
+            {sidebarCopy.description}
           </p>
         </div>
 
@@ -85,31 +88,31 @@ export function Sidebar({
           href="/workspace"
           className={cn(buttonVariants({ variant: "outline", size: "sm" }), "shrink-0")}
         >
-          Workspace
+          {sidebarCopy.workspaceButton}
         </Link>
       </div>
 
       <div className="mt-6 rounded-2xl border border-border/70 bg-muted/30 p-4">
         <div className="flex items-center gap-2 text-sm font-medium text-foreground">
           <Layers3 className="size-4 text-muted-foreground" />
-          {totalNotes} notes in library
+          {sidebarCopy.statsTitle(totalNotes)}
         </div>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Keep the collection small, searchable, and easy to reuse.
+          {sidebarCopy.statsDescription}
         </p>
       </div>
 
       <div className="mt-6 space-y-6">
         <FilterSection
           icon={FolderKanban}
-          title="Notebooks"
+          title={sidebarCopy.notebooks}
           options={notebooks}
           selectedValue={selectedNotebook}
           onSelect={onNotebookChange}
         />
         <FilterSection
           icon={Sparkles}
-          title="Topics"
+          title={sidebarCopy.topics}
           options={topics}
           selectedValue={selectedTopic}
           onSelect={onTopicChange}

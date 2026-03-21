@@ -3,63 +3,58 @@ import type { KnowledgeItem, Message } from "@/lib/types";
 export const initialKnowledgeItems: KnowledgeItem[] = [
   {
     id: "note-memory-loop",
-    title: "Memory Loop for Weekly Research",
-    summary:
-      "A simple note processing loop: capture, condense, tag, and resurface insights for recurring projects.",
+    title: "每周研究笔记的整理闭环",
+    summary: "先收集、再压缩、再打标签，最后定期回看，知识库才会持续可复用。",
     content:
-      "When research notes pile up, the useful pattern is not more folders. It is a loop. Capture raw inputs fast, condense them into one paragraph, attach 2 or 3 tags, and review the strongest ideas once a week. This keeps the library small enough to stay reusable.",
-    tags: ["Workflow", "Research"],
+      "研究资料一多，问题往往不是分类不够，而是没有固定整理闭环。更稳妥的做法是：先快速收集原始输入，再压缩成一段摘要，补上 2 到 3 个标签，最后在每周固定时间回看最值得保留的结论。这样知识库不会越积越乱，后续写作或提问时也更容易调用。",
+    tags: ["方法论", "研究"],
     createdAt: "2026-03-18T09:20:00.000Z",
-    notebook: "Research Ops",
-    topic: "Knowledge Workflow",
+    notebook: "研究流程",
+    topic: "知识整理",
   },
   {
     id: "note-product-reviews",
-    title: "What Makes Product Reviews Reusable",
-    summary:
-      "Reusable reviews separate observation, evidence, and recommendation so later prompts can cite them cleanly.",
+    title: "复盘类笔记为什么要拆成观察、证据、结论",
+    summary: "把复盘从感受改成结构化记录，后续总结、引用和生成内容都会更顺手。",
     content:
-      "A reusable product review should not be a stream of opinions. Break each review into observation, supporting evidence, and a recommendation. That structure makes the note easier to summarize, compare, or turn into a draft without re-reading the entire source.",
-    tags: ["Product", "Writing"],
+      "复盘笔记如果只是连续表达观点，后面几乎无法复用。更适合个人知识库的写法是拆成三层：发生了什么观察、支撑判断的证据、最后的结论或建议。这样在生成周报、PRD 背景或复盘摘要时，不需要重新通读整篇笔记。",
+    tags: ["产品", "写作"],
     createdAt: "2026-03-16T14:45:00.000Z",
-    notebook: "Product Notes",
-    topic: "Review Frameworks",
+    notebook: "产品策划",
+    topic: "复盘框架",
   },
   {
     id: "note-prd-source",
-    title: "PRD Inputs from Customer Interviews",
-    summary:
-      "Interview notes become PRD inputs when pain points, workflow blockers, and success signals are normalized.",
+    title: "用户访谈如何沉淀成 PRD 输入",
+    summary: "把痛点、发生环节和成功信号统一提取出来，访谈笔记才真正能进入产品规划。",
     content:
-      "A good PRD source note extracts three things from interviews: the repeated pain point, the workflow step where it happens, and the success signal that tells you the problem is solved. If those three fields are consistent, drafting an outline becomes much faster.",
-    tags: ["PM", "PRD"],
+      "一条能进入 PRD 的访谈笔记，至少要留下三类信息：反复出现的用户痛点、问题发生在哪个流程环节，以及怎样才算问题被解决。只要这三个字段沉淀得足够稳定，后续写需求背景、目标和验收标准都会快很多。",
+    tags: ["PRD", "访谈"],
     createdAt: "2026-03-14T07:30:00.000Z",
-    notebook: "Product Notes",
-    topic: "Planning",
+    notebook: "产品策划",
+    topic: "需求规划",
   },
   {
     id: "note-ai-writing",
-    title: "Using AI Without Losing Original Thinking",
-    summary:
-      "Treat models as drafting partners after the reasoning is written down, not before.",
+    title: "用 AI 写作时，先写判断再让模型扩写",
+    summary: "先保留自己的判断，再用模型压缩、改写或补齐结构，内容会更有辨识度。",
     content:
-      "AI works best after the core reasoning already exists in notes. Capture your position first, then use the model to compress, rearrange, or reframe. This prevents generic outputs and keeps the final draft tied to your actual perspective.",
-    tags: ["AI", "Writing"],
+      "AI 更适合做第二遍加工，而不是第一遍思考。先把自己的判断、取舍和关键论点写下来，再让模型帮你总结、重组或扩写，会明显减少空泛表达。这样最后产出的内容仍然带有你的观点，而不是一段看起来正确但没有立场的文字。",
+    tags: ["AI", "写作"],
     createdAt: "2026-03-12T11:10:00.000Z",
-    notebook: "AI Studio",
-    topic: "Drafting",
+    notebook: "AI 写作",
+    topic: "内容生成",
   },
   {
     id: "note-reading-signals",
-    title: "Signals Worth Keeping from Long Reads",
-    summary:
-      "Preserve claims, counterpoints, and follow-up questions instead of entire passages.",
+    title: "长文阅读时最值得保留的三类信息",
+    summary: "与其保存大段原文，不如保留核心观点、反方线索和后续问题。",
     content:
-      "Long reads are easier to reuse when the note only keeps three kinds of fragments: the central claim, the strongest counterpoint, and the next question it creates. Those fragments travel better across summaries, chat answers, and planning docs than large copied excerpts.",
-    tags: ["Reading", "Synthesis"],
+      "长文笔记最容易失控的地方，是复制了太多原文却没有留下自己的抽取结果。更适合进入知识库的内容通常只有三类：作者的核心观点、最有价值的反方线索，以及这篇内容带来的后续问题。它们更适合被用在总结、提问和生成提纲里。",
+    tags: ["学习", "整理"],
     createdAt: "2026-03-09T16:05:00.000Z",
-    notebook: "Reading Desk",
-    topic: "Synthesis",
+    notebook: "学习笔记",
+    topic: "阅读整理",
   },
 ];
 
@@ -67,62 +62,62 @@ export const initialMessages: Message[] = [
   {
     id: "msg-1",
     role: "user",
-    content: "What is the common pattern across these notes for building a useful personal knowledge base?",
+    content: "这些知识卡片里，构建个人知识库的共同方法是什么？",
     citations: [],
   },
   {
     id: "msg-2",
     role: "assistant",
     content:
-      "The shared pattern is compression before retrieval. Each note reduces a larger source into a small reusable unit: a summary, a few tags, and one clear takeaway. That makes later drafting or questioning much easier because the context is already cleaned up.",
+      "共同点是先压缩，再检索。每条知识都把更长的素材整理成可复用的小单元，比如一段摘要、少量标签和一个明确结论。这样后续无论提问还是生成内容，都不需要再从原文重新整理。",
     citations: [
-      { id: "note-memory-loop", title: "Memory Loop for Weekly Research" },
-      { id: "note-reading-signals", title: "Signals Worth Keeping from Long Reads" },
+      { id: "note-memory-loop", title: "每周研究笔记的整理闭环" },
+      { id: "note-reading-signals", title: "长文阅读时最值得保留的三类信息" },
     ],
   },
   {
     id: "msg-3",
     role: "user",
-    content: "How would you turn that into a workspace rule for writing with AI?",
+    content: "如果把这个方法写成 AI 工作台规则，最核心的一条是什么？",
     citations: [],
   },
   {
     id: "msg-4",
     role: "assistant",
     content:
-      "Use the workspace as a second pass, not a first pass. Start from distilled notes, then ask for summaries, outlines, or reframing. The model should operate on your structured knowledge, not replace the act of structuring it.",
+      "先把自己的判断写清楚，再让工作台做第二遍加工。也就是说，模型应该基于已经整理过的知识做总结、提纲或改写，而不是代替你完成最初的思考和结构化。",
     citations: [
-      { id: "note-ai-writing", title: "Using AI Without Losing Original Thinking" },
-      { id: "note-prd-source", title: "PRD Inputs from Customer Interviews" },
+      { id: "note-ai-writing", title: "用 AI 写作时，先写判断再让模型扩写" },
+      { id: "note-prd-source", title: "用户访谈如何沉淀成 PRD 输入" },
     ],
   },
 ];
 
 export const generationOutputs = {
   summary: [
-    "This library favors short, high-signal notes that preserve reasoning while stripping away noise. Most items highlight a repeatable method rather than a one-off observation.",
-    "Across research, writing, and planning, the strongest pattern is to normalize notes into reusable fragments: takeaway, evidence, and next action. That makes downstream AI drafting more grounded and less generic.",
+    "这组知识卡片的共同特点是信息密度高、结构稳定。它们都在努力把更长的原始材料压缩成可被再次调用的小单元，而不是简单堆积资料。",
+    "无论是研究整理、AI 写作还是 PRD 输入，最核心的做法都是先完成自己的结构化，再让工作台继续做总结、提纲和生成。这会让后续产出更稳，也更贴近真实判断。",
   ],
   prdOutline: [
     {
-      heading: "Problem",
+      heading: "问题",
       items: [
-        "Knowledge scattered across long notes is hard to reuse when drafting or asking targeted questions.",
-        "Users need a lightweight workspace that keeps notes, citations, and generated content in one place.",
+        "零散知识分布在长笔记中，后续写作、提问和生成内容时很难快速复用。",
+        "用户需要一个轻量工作台，把知识卡片、引用来源和生成结果放在同一视图里。",
       ],
     },
     {
-      heading: "Goals",
+      heading: "目标",
       items: [
-        "Let users browse compact knowledge cards and inspect details quickly.",
-        "Support a focused workspace where selected notes can back chat replies and generated outputs.",
+        "让用户先看到清晰可浏览的知识卡片，并能快速查看详情。",
+        "支持围绕已选知识进行提问、总结和 PRD 提纲生成。",
       ],
     },
     {
-      heading: "MVP Scope",
+      heading: "最小版本范围",
       items: [
-        "Local mock knowledge library with create, search, and detail view.",
-        "Workspace with selected sources, chat transcript, and tabbed generation panel.",
+        "本地模拟知识库，包含新增、搜索和详情查看。",
+        "工作台三栏布局，展示已选资料、对话记录和标签页生成结果。",
       ],
     },
   ],

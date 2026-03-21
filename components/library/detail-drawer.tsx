@@ -12,6 +12,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { uiCopy } from "@/lib/copy/zh-cn";
 import { formatShortDate } from "@/lib/format";
 import type { KnowledgeItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,8 @@ export function DetailDrawer({ item, open, onOpenChange }: DetailDrawerProps) {
   if (!item) {
     return null;
   }
+
+  const drawerCopy = uiCopy.library.drawer;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -44,7 +47,7 @@ export function DetailDrawer({ item, open, onOpenChange }: DetailDrawerProps) {
             <div className="rounded-2xl border border-border/70 bg-muted/20 p-4">
               <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.22em] text-muted-foreground">
                 <Clock3 className="size-3.5" />
-                Created
+                {drawerCopy.createdAt}
               </div>
               <p className="mt-2 text-sm font-medium text-foreground">
                 {formatShortDate(item.createdAt)}
@@ -54,14 +57,14 @@ export function DetailDrawer({ item, open, onOpenChange }: DetailDrawerProps) {
             <div className="rounded-2xl border border-border/70 bg-muted/20 p-4">
               <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.22em] text-muted-foreground">
                 <Tags className="size-3.5" />
-                Topic
+                {drawerCopy.topic}
               </div>
               <p className="mt-2 text-sm font-medium text-foreground">{item.topic}</p>
             </div>
           </div>
 
           <section>
-            <h3 className="text-sm font-medium text-foreground">Tags</h3>
+            <h3 className="text-sm font-medium text-foreground">{drawerCopy.tags}</h3>
             <div className="mt-3 flex flex-wrap gap-2">
               {item.tags.map((tag) => (
                 <Badge key={tag} variant="outline" className="rounded-full">
@@ -72,7 +75,9 @@ export function DetailDrawer({ item, open, onOpenChange }: DetailDrawerProps) {
           </section>
 
           <section>
-            <h3 className="text-sm font-medium text-foreground">Original content</h3>
+            <h3 className="text-sm font-medium text-foreground">
+              {drawerCopy.originalContent}
+            </h3>
             <div className="mt-3 rounded-[20px] border border-border/70 bg-muted/20 p-4 text-sm leading-7 whitespace-pre-wrap text-foreground">
               {item.content}
             </div>
@@ -87,7 +92,7 @@ export function DetailDrawer({ item, open, onOpenChange }: DetailDrawerProps) {
               "w-full justify-center hover:bg-primary/90"
             )}
           >
-            Ask with this note
+            {drawerCopy.askButton}
           </Link>
         </SheetFooter>
       </SheetContent>

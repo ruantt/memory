@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { KnowledgeProvider } from "@/components/providers/knowledge-provider";
+import { uiCopy } from "@/lib/copy/zh-cn";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Memory",
-  description: "A minimal personal knowledge base MVP built with mock data.",
+  title: uiCopy.metadata.title,
+  description: uiCopy.metadata.description,
 };
 
 export default function RootLayout({
@@ -25,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="zh-CN"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#f6f5f2] text-foreground">

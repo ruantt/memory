@@ -4,6 +4,7 @@ import { ChatPanel } from "@/components/workspace/chat-panel";
 import { GenerationPanel } from "@/components/workspace/generation-panel";
 import { SourcesPanel } from "@/components/workspace/sources-panel";
 import { useKnowledge } from "@/components/providers/knowledge-provider";
+import { uiCopy } from "@/lib/copy/zh-cn";
 import { generationOutputs, initialMessages } from "@/lib/mock-data";
 
 type WorkspacePageProps = {
@@ -12,6 +13,7 @@ type WorkspacePageProps = {
 
 export function WorkspacePage({ focusedSourceId }: WorkspacePageProps) {
   const { items } = useKnowledge();
+  const workspaceHeaderCopy = uiCopy.workspace.header;
   const focusedSource = items.find((item) => item.id === focusedSourceId);
   const remainingSources = items.filter((item) => item.id !== focusedSourceId);
   const selectedSources = focusedSource
@@ -24,21 +26,22 @@ export function WorkspacePage({ focusedSourceId }: WorkspacePageProps) {
       <div className="mx-auto max-w-[1600px]">
         <header className="mb-4 rounded-[28px] border border-border/70 bg-background/95 px-5 py-4">
           <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">
-            Workspace
+            {workspaceHeaderCopy.eyebrow}
           </p>
           <div className="mt-2 flex flex-col gap-2 xl:flex-row xl:items-end xl:justify-between">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">
-                Ask, synthesize, and draft from selected notes
+                {workspaceHeaderCopy.title}
               </h1>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Three-panel MVP layout with mock chat history, citation chips, and generation tabs.
+                {workspaceHeaderCopy.description}
               </p>
             </div>
 
             {focusedSource ? (
               <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-                Focused source: <span className="font-medium text-foreground">{focusedSource.title}</span>
+                {workspaceHeaderCopy.focusedSourcePrefix}{" "}
+                <span className="font-medium text-foreground">{focusedSource.title}</span>
               </div>
             ) : null}
           </div>

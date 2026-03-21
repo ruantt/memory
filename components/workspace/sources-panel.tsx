@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, BookMarked, Layers3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { uiCopy } from "@/lib/copy/zh-cn";
 import { formatShortDate } from "@/lib/format";
 import type { KnowledgeItem } from "@/lib/types";
 
@@ -9,6 +10,8 @@ type SourcesPanelProps = {
 };
 
 export function SourcesPanel({ sources }: SourcesPanelProps) {
+  const sourcesCopy = uiCopy.workspace.sources;
+
   return (
     <aside className="flex h-full flex-col rounded-[28px] border border-border/70 bg-background/95">
       <div className="border-b border-border/70 p-5">
@@ -17,16 +20,16 @@ export function SourcesPanel({ sources }: SourcesPanelProps) {
           className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="size-4" />
-          Library
+          {sourcesCopy.back}
         </Link>
 
         <div className="mt-4 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">
           <Layers3 className="size-3.5" />
-          Sources
+          {sourcesCopy.eyebrow}
         </div>
-        <h2 className="mt-2 text-lg font-semibold">Selected references</h2>
+        <h2 className="mt-2 text-lg font-semibold">{sourcesCopy.title}</h2>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          {sources.length} notes are currently backing this workspace.
+          {sourcesCopy.description(sources.length)}
         </p>
       </div>
 

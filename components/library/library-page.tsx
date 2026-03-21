@@ -8,31 +8,40 @@ import { KnowledgeCard } from "@/components/library/knowledge-card";
 import { Sidebar } from "@/components/library/sidebar";
 import { TopBar } from "@/components/library/top-bar";
 import { useKnowledge } from "@/components/providers/knowledge-provider";
+import { uiCopy } from "@/lib/copy/zh-cn";
 import type { KnowledgeItem } from "@/lib/types";
-
-const ALL_NOTEBOOKS = "All notebooks";
-const ALL_TOPICS = "All topics";
 
 export function LibraryPage() {
   const { items, addKnowledge } = useKnowledge();
+  const filtersCopy = uiCopy.library.filters;
+  const emptyStateCopy = uiCopy.library.emptyState;
   const [searchValue, setSearchValue] = useState("");
   const deferredSearchValue = useDeferredValue(searchValue);
-  const [selectedNotebook, setSelectedNotebook] = useState(ALL_NOTEBOOKS);
-  const [selectedTopic, setSelectedTopic] = useState(ALL_TOPICS);
+  const [selectedNotebook, setSelectedNotebook] = useState<string>(
+    filtersCopy.allNotebooks
+  );
+  const [selectedTopic, setSelectedTopic] = useState<string>(
+    filtersCopy.allTopics
+  );
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [activeItem, setActiveItem] = useState<KnowledgeItem | null>(null);
 
   const notebooks = [
-    ALL_NOTEBOOKS,
+    filtersCopy.allNotebooks,
     ...Array.from(new Set(items.map((item) => item.notebook))),
   ];
-  const topics = [ALL_TOPICS, ...Array.from(new Set(items.map((item) => item.topic)))];
+  const topics = [
+    filtersCopy.allTopics,
+    ...Array.from(new Set(items.map((item) => item.topic))),
+  ];
   const normalizedQuery = deferredSearchValue.trim().toLowerCase();
 
   const filteredItems = items.filter((item) => {
     const matchesNotebook =
-      selectedNotebook === ALL_NOTEBOOKS || item.notebook === selectedNotebook;
-    const matchesTopic = selectedTopic === ALL_TOPICS || item.topic === selectedTopic;
+      selectedNotebook === filtersCopy.allNotebooks ||
+      item.notebook === selectedNotebook;
+    const matchesTopic =
+      selectedTopic === filtersCopy.allTopics || item.topic === selectedTopic;
     const matchesSearch =
       normalizedQuery.length === 0 ||
       [item.title, item.summary, item.content, item.tags.join(" ")]
@@ -81,9 +90,9 @@ export function LibraryPage() {
             {filteredItems.length === 0 ? (
               <div className="col-span-full flex min-h-64 flex-col items-center justify-center rounded-[24px] border border-dashed border-border bg-muted/20 px-6 text-center">
                 <FileSearch className="size-10 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-medium">No notes match this view</h3>
+                <h3 className="mt-4 text-lg font-medium">{emptyStateCopy.title}</h3>
                 <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-                  Try a different keyword, switch notebook or topic, or create a new note.
+                  {emptyStateCopy.description}
                 </p>
               </div>
             ) : null}

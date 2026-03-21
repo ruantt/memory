@@ -5,6 +5,7 @@ import { MessageSquareText, SendHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { uiCopy } from "@/lib/copy/zh-cn";
 import type { Citation, Message } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +15,7 @@ type ChatPanelProps = {
 };
 
 export function ChatPanel({ initialMessages, sourceCitations }: ChatPanelProps) {
+  const chatCopy = uiCopy.workspace.chat;
   const [messages, setMessages] = useState(initialMessages);
   const [prompt, setPrompt] = useState("");
 
@@ -35,8 +37,7 @@ export function ChatPanel({ initialMessages, sourceCitations }: ChatPanelProps) 
       {
         id: crypto.randomUUID(),
         role: "assistant",
-        content:
-          "Mock response: this workspace is wired for local interaction only. In a real version, the assistant would ground the answer in the selected notes and return a generated response here.",
+        content: chatCopy.mockResponse,
         citations: sourceCitations.slice(0, 2),
       },
     ];
@@ -50,11 +51,11 @@ export function ChatPanel({ initialMessages, sourceCitations }: ChatPanelProps) 
       <div className="border-b border-border/70 p-5">
         <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">
           <MessageSquareText className="size-3.5" />
-          Chat
+          {chatCopy.eyebrow}
         </div>
-        <h2 className="mt-2 text-lg font-semibold">Ask against selected knowledge</h2>
+        <h2 className="mt-2 text-lg font-semibold">{chatCopy.title}</h2>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Replies stay mocked, but citation chips are rendered from the current sources.
+          {chatCopy.description}
         </p>
       </div>
 
@@ -97,17 +98,15 @@ export function ChatPanel({ initialMessages, sourceCitations }: ChatPanelProps) 
           <Textarea
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}
-            placeholder="Ask about your selected notes..."
+            placeholder={chatCopy.inputPlaceholder}
             className="min-h-24 border-none p-0 shadow-none focus-visible:ring-0"
           />
 
           <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-muted-foreground">
-              Local mock interaction only. No model or backend call is made.
-            </p>
+            <p className="text-xs text-muted-foreground">{chatCopy.hint}</p>
             <Button onClick={handleSend} disabled={!prompt.trim()}>
               <SendHorizontal className="size-4" />
-              Send
+              {chatCopy.send}
             </Button>
           </div>
         </div>

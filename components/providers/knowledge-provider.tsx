@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState } from "react";
+import { uiCopy } from "@/lib/copy/zh-cn";
 import { initialKnowledgeItems } from "@/lib/mock-data";
 import type { KnowledgeItem } from "@/lib/types";
 
@@ -33,17 +34,20 @@ export function KnowledgeProvider({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const filtersCopy = uiCopy.library.filters;
   const [items, setItems] = useState(initialKnowledgeItems);
 
   const addKnowledge = ({ title, content, notebook, topic }: CreateKnowledgeInput) => {
-    const nextNotebook = notebook === "All notebooks" ? "Inbox" : notebook;
-    const nextTopic = topic === "All topics" ? "Quick Capture" : topic;
+    const nextNotebook =
+      notebook === filtersCopy.allNotebooks ? filtersCopy.defaultNotebook : notebook;
+    const nextTopic =
+      topic === filtersCopy.allTopics ? filtersCopy.defaultTopic : topic;
     const trimmedTitle = title?.trim();
     const trimmedContent = content.trim();
 
     const newItem: KnowledgeItem = {
       id: crypto.randomUUID(),
-      title: trimmedTitle || "Untitled Note",
+      title: trimmedTitle || filtersCopy.untitledNote,
       summary: createSummary(trimmedContent),
       content: trimmedContent,
       tags: [nextTopic],
