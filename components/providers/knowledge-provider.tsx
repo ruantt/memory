@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import {
+  createContext,
+  startTransition,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { fetchWebSource } from "@/lib/ai/api";
 import { uiCopy } from "@/lib/copy/zh-cn";
 import { initialKnowledgeItems } from "@/lib/mock-data";
@@ -38,6 +44,11 @@ type KnowledgeContextValue = {
 };
 
 const KnowledgeContext = createContext<KnowledgeContextValue | null>(null);
+const KNOWLEDGE_ITEMS_STORAGE_KEY = "memory:knowledge-items";
+const WORKSPACE_SOURCES_STORAGE_KEY = "memory:workspace-sources";
+const INITIAL_KNOWLEDGE_CREATED_AT_MAP = new Map(
+  initialKnowledgeItems.map((item) => [item.id, item.createdAt])
+);
 
 function createSummary(content: string) {
   const normalized = content.replace(/\s+/g, " ").trim();
@@ -61,6 +72,149 @@ function createKnowledgeSource(item: KnowledgeItem): KnowledgeSource {
     tags: item.tags,
     createdAt: item.createdAt,
   };
+}
+
+function createDefaultWorkspaceSources(items: KnowledgeItem[]) {
+  return items.slice(0, 2).map(createKnowledgeSource);
+}
+
+function isKnowledgeItem(value: unknown): value is KnowledgeItem {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const item = value as Partial<KnowledgeItem>;
+
+  return (
+    typeof item.id === "string" &&
+    typeof item.title === "string" &&
+    typeof item.summary === "string" &&
+    typeof item.content === "string" &&
+    typeof item.createdAt === "string" &&
+    typeof item.topic === "string" &&
+    Array.isArray(item.tags) &&
+    item.tags.every((tag) => typeof tag === "string")
+  );
+}
+
+function isFileSourceMeta(value: unknown): value is FileSource["fileMeta"] {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const meta = value as Partial<FileSource["fileMeta"]>;
+
+  return (
+    typeof meta.name === "string" &&
+    typeof meta.type === "string" &&
+    typeof meta.size === "number" &&
+    typeof meta.uploadedAt === "string"
+  );
+}
+
+function isWorkspaceSource(value: unknown): value is WorkspaceSource {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const source = value as Partial<WorkspaceSource>;
+
+  if (typeof source.id !== "string" || typeof source.title !== "string") {
+    return false;
+  }
+
+  if (source.summary !== undefined && typeof source.summary !== "string") {
+    return false;
+  }
+
+  if (source.content !== undefined && typeof source.content !== "string") {
+    return false;
+  }
+
+  if (source.topic !== undefined && typeof source.topic !== "string") {
+    return false;
+  }
+
+  if (
+    source.tags !== undefined &&
+    (!Array.isArray(source.tags) || source.tags.some((tag) => typeof tag !== "string"))
+  ) {
+    return false;
+  }
+
+  if (source.type === "knowledge") {
+    return (
+      typeof source.knowledgeId === "string" && typeof source.createdAt === "string"
+    );
+  }
+
+  if (source.type === "file") {
+    return isFileSourceMeta(source.fileMeta);
+  }
+
+  if (source.type === "link") {
+    return (
+      typeof source.url === "string" &&
+      typeof source.content === "string" &&
+      typeof source.summary === "string" &&
+      Array.isArray(source.tags) &&
+      source.tags.every((tag) => typeof tag === "string") &&
+      (source.status === "loading" ||
+        source.status === "ready" ||
+        source.status === "error")
+    );
+  }
+
+  return false;
+}
+
+function readStoredJson<T>(
+  storageKey: string,
+  guard: (value: unknown) => value is T
+): T | null {
+  try {
+    const rawValue = localStorage.getItem(storageKey);
+
+    if (!rawValue) {
+      return null;
+    }
+
+    const parsedValue = JSON.parse(rawValue) as unknown;
+
+    return guard(parsedValue) ? parsedValue : null;
+  } catch {
+    return null;
+  }
+}
+
+function sanitizeWorkspaceSources(
+  sources: WorkspaceSource[],
+  items: KnowledgeItem[]
+) {
+  const itemIds = new Set(items.map((item) => item.id));
+
+  return sources.filter((source) => {
+    if (source.type !== "knowledge") {
+      return true;
+    }
+
+    return itemIds.has(source.knowledgeId);
+  });
+}
+
+function normalizeSeedKnowledgeDates(items: KnowledgeItem[]) {
+  return items.map((item) => {
+    const expectedCreatedAt = INITIAL_KNOWLEDGE_CREATED_AT_MAP.get(item.id);
+
+    if (!expectedCreatedAt || item.createdAt === expectedCreatedAt) {
+      return item;
+    }
+
+    return {
+      ...item,
+      createdAt: expectedCreatedAt,
+    };
+  });
 }
 
 function resolveFileType(file: File) {
@@ -124,8 +278,50 @@ export function KnowledgeProvider({
   const workspaceSourcesCopy = uiCopy.workspace.sources;
   const [items, setItems] = useState(initialKnowledgeItems);
   const [workspaceSources, setWorkspaceSources] = useState<WorkspaceSource[]>(() =>
-    initialKnowledgeItems.slice(0, 2).map(createKnowledgeSource)
+    createDefaultWorkspaceSources(initialKnowledgeItems)
   );
+  const [hasLoadedStorage, setHasLoadedStorage] = useState(false);
+
+  useEffect(() => {
+    const storedItems =
+      readStoredJson<KnowledgeItem[]>(
+        KNOWLEDGE_ITEMS_STORAGE_KEY,
+        (value): value is KnowledgeItem[] =>
+          Array.isArray(value) && value.every(isKnowledgeItem)
+      ) ?? initialKnowledgeItems;
+    const nextItems = normalizeSeedKnowledgeDates(storedItems);
+    const storedWorkspaceSources = readStoredJson<WorkspaceSource[]>(
+      WORKSPACE_SOURCES_STORAGE_KEY,
+      (value): value is WorkspaceSource[] =>
+        Array.isArray(value) && value.every(isWorkspaceSource)
+    );
+    const nextWorkspaceSources = sanitizeWorkspaceSources(
+      storedWorkspaceSources ?? createDefaultWorkspaceSources(nextItems),
+      nextItems
+    );
+
+    startTransition(() => {
+      setItems(nextItems);
+      setWorkspaceSources(nextWorkspaceSources);
+      setHasLoadedStorage(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedStorage) {
+      return;
+    }
+
+    try {
+      localStorage.setItem(KNOWLEDGE_ITEMS_STORAGE_KEY, JSON.stringify(items));
+      localStorage.setItem(
+        WORKSPACE_SOURCES_STORAGE_KEY,
+        JSON.stringify(workspaceSources)
+      );
+    } catch {
+      // Ignore storage write failures and keep in-memory behavior.
+    }
+  }, [hasLoadedStorage, items, workspaceSources]);
 
   const syncLinkSource = async ({
     id,
