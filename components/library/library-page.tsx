@@ -48,7 +48,7 @@ export function LibraryPage() {
   async function handleCreateKnowledge(values: {
     title: string;
     content: string;
-    topic: string;
+    topic?: string;
     tags: string[];
   }) {
     const enriched = await enrichKnowledge({
@@ -56,12 +56,14 @@ export function LibraryPage() {
       content: values.content,
       topic: values.topic,
       tags: values.tags,
+      availableTopics: topicOptions,
     });
 
     addKnowledge({
       ...values,
       title: enriched.title,
       summary: enriched.summary,
+      topic: enriched.topic,
       tags: enriched.tags,
     });
   }

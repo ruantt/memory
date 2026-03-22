@@ -5,12 +5,14 @@ type EnrichKnowledgePayload = {
   topic?: string;
   title?: string;
   tags?: string[];
+  availableTopics?: string[];
 };
 
 type EnrichKnowledgeResponse = {
   title: string;
   summary: string;
   tags: string[];
+  topic: string;
 };
 
 type WorkspaceChatPayload = {

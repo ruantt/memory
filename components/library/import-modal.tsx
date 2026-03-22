@@ -23,7 +23,7 @@ type ImportModalProps = {
   onSave: (values: {
     title: string;
     content: string;
-    topic: string;
+    topic?: string;
     tags: string[];
   }) => Promise<void> | void;
   selectedTopic: string;
@@ -43,18 +43,35 @@ export function ImportModal({
 }: ImportModalProps) {
   const filtersCopy = uiCopy.library.filters;
   const modalCopy = uiCopy.library.modal;
-  const resolvedTopic =
-    selectedTopic === filtersCopy.allTopics
-      ? filtersCopy.defaultTopic
-      : selectedTopic;
+  const preferredTopic =
+    selectedTopic === filtersCopy.allTopics ? "" : normalizeTag(selectedTopic);
+  const normalizedAvailableTopics = Array.from(
+    new Set(availableTopics.map((option) => normalizeTag(option)).filter(Boolean))
+  );
+  const suggestedTopics = preferredTopic
+    ? [preferredTopic, ...normalizedAvailableTopics.filter((option) => option !== preferredTopic)]
+    : normalizedAvailableTopics;
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [topic, setTopic] = useState(resolvedTopic);
+  const [topic, setTopic] = useState("");
+  const [topicInput, setTopicInput] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const normalizedTopicInput = normalizeTag(topicInput).toLowerCase();
+  const filteredTopicOptions = suggestedTopics.filter((option) => {
+    if (option === topic) {
+      return false;
+    }
+
+    if (!normalizedTopicInput) {
+      return true;
+    }
+
+    return option.toLowerCase().includes(normalizedTopicInput);
+  });
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
@@ -63,6 +80,38 @@ export function ImportModal({
     }
 
     onOpenChange(nextOpen);
+  }
+
+  function resolveTopicValue(rawValue: string) {
+    const normalizedTopic = normalizeTag(rawValue);
+
+    if (!normalizedTopic) {
+      return "";
+    }
+
+    return (
+      suggestedTopics.find(
+        (option) => option.toLowerCase() === normalizedTopic.toLowerCase()
+      ) || normalizedTopic
+    );
+  }
+
+  function commitTopic(rawValue: string) {
+    const nextTopic = resolveTopicValue(rawValue);
+
+    if (!nextTopic) {
+      return "";
+    }
+
+    setTopic(nextTopic);
+    setTopicInput("");
+
+    return nextTopic;
+  }
+
+  function clearTopic() {
+    setTopic("");
+    setTopicInput("");
   }
 
   function appendTags(rawValue: string) {
@@ -102,6 +151,15 @@ export function ImportModal({
     appendTags(tagInput);
   }
 
+  function handleTopicKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== "Enter" && event.key !== ",") {
+      return;
+    }
+
+    event.preventDefault();
+    commitTopic(topicInput);
+  }
+
   async function handleSave() {
     const trimmedContent = content.trim();
 
@@ -109,12 +167,17 @@ export function ImportModal({
       return;
     }
 
-    const normalizedTopic = topic || filtersCopy.defaultTopic;
+    const pendingTopic = topic || resolveTopicValue(topicInput);
     const pendingTags = tagInput
       .split(/[，,]/)
       .map((tag) => normalizeTag(tag))
       .filter(Boolean);
     const nextTags = Array.from(new Set([...tags, ...pendingTags]));
+
+    if (pendingTopic && pendingTopic !== topic) {
+      setTopic(pendingTopic);
+      setTopicInput("");
+    }
 
     setSubmitError("");
     setIsSaving(true);
@@ -123,7 +186,7 @@ export function ImportModal({
       await onSave({
         title: title.trim(),
         content: trimmedContent,
-        topic: normalizedTopic,
+        topic: pendingTopic || undefined,
         tags: nextTags,
       });
       onOpenChange(false);
@@ -177,20 +240,78 @@ export function ImportModal({
                 <label htmlFor="note-topic" className="text-sm font-medium">
                   {modalCopy.topicLabel}
                 </label>
-                <select
-                  id="note-topic"
-                  value={topic}
-                  onChange={(event) => setTopic(event.target.value)}
-                  className="h-11 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                >
-                  {availableTopics.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
+                <div className="space-y-2">
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Input
+                      id="note-topic"
+                      value={topicInput}
+                      onChange={(event) => setTopicInput(event.target.value)}
+                      onKeyDown={handleTopicKeyDown}
+                      placeholder={modalCopy.topicPlaceholder}
+                      className="h-11 flex-1 rounded-xl"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => commitTopic(topicInput)}
+                      disabled={!topicInput.trim()}
+                      className="h-11 shrink-0 rounded-xl px-4"
+                    >
+                      <Plus className="size-4" />
+                      {modalCopy.topicCreate}
+                    </Button>
+                    {topic ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={clearTopic}
+                        className="h-11 shrink-0 rounded-xl px-4"
+                      >
+                        {modalCopy.topicClear}
+                      </Button>
+                    ) : null}
+                  </div>
+
+                  {topic ? (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <Badge
+                        variant="outline"
+                        className="rounded-full px-2.5 py-1 text-xs"
+                      >
+                        <span>{topic}</span>
+                        <button
+                          type="button"
+                          onClick={clearTopic}
+                          aria-label={`${modalCopy.topicClear} ${topic}`}
+                          className="ml-1.5 rounded-full text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          <X className="size-3" />
+                        </button>
+                      </Badge>
+                    </div>
+                  ) : null}
+
+                  {filteredTopicOptions.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {filteredTopicOptions.map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => {
+                            setTopic(option);
+                            setTopicInput("");
+                          }}
+                          className="inline-flex h-8 items-center rounded-full border border-border bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
                 <p className="text-xs leading-5 text-muted-foreground">
-                  {modalCopy.currentTopicHint} {modalCopy.topicHelp}
+                  {preferredTopic ? `${modalCopy.currentTopicHint} ` : ""}
+                  {modalCopy.topicHelp} {modalCopy.topicAutoHint}
                 </p>
               </div>
 

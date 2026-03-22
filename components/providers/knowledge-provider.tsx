@@ -16,7 +16,7 @@ type CreateKnowledgeInput = {
   title?: string;
   summary?: string;
   content: string;
-  topic: string;
+  topic?: string;
   tags: string[];
 };
 
@@ -199,8 +199,11 @@ export function KnowledgeProvider({
     topic,
     tags,
   }: CreateKnowledgeInput) => {
+    const normalizedTopic = topic?.trim();
     const nextTopic =
-      topic === filtersCopy.allTopics ? filtersCopy.defaultTopic : topic;
+      normalizedTopic && normalizedTopic !== filtersCopy.allTopics
+        ? normalizedTopic
+        : filtersCopy.defaultTopic;
     const trimmedTitle = title?.trim();
     const trimmedSummary = summary?.trim();
     const trimmedContent = content.trim();

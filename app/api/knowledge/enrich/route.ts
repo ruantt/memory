@@ -8,11 +8,12 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
-    const { content, topic, title, tags } = (await request.json()) as {
+    const { content, topic, title, tags, availableTopics } = (await request.json()) as {
       content?: string;
       topic?: string;
       title?: string;
       tags?: string[];
+      availableTopics?: string[];
     };
 
     if (!content?.trim()) {
@@ -28,6 +29,9 @@ export async function POST(request: Request) {
       title,
       tags: Array.isArray(tags)
         ? tags.filter((tag): tag is string => typeof tag === "string")
+        : [],
+      availableTopics: Array.isArray(availableTopics)
+        ? availableTopics.filter((item): item is string => typeof item === "string")
         : [],
     });
 

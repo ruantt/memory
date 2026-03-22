@@ -8,6 +8,7 @@ type KnowledgeEnrichPromptInput = {
   topic?: string;
   title?: string;
   tags?: string[];
+  availableTopics?: string[];
 };
 
 type WebpageSummaryPromptInput = {
@@ -38,26 +39,38 @@ function formatOptionalTags(tags?: string[]) {
   }`;
 }
 
+function formatAvailableTopics(topics?: string[]) {
+  const normalizedTopics = (topics ?? []).map((topic) => topic.trim()).filter(Boolean);
+
+  return `现有主题列表（优先从中选择）: ${
+    normalizedTopics.length > 0 ? normalizedTopics.join("、") : "未提供"
+  }`;
+}
+
 export function buildKnowledgeEnrichMessages({
   content,
   topic,
   title,
   tags,
+  availableTopics,
 }: KnowledgeEnrichPromptInput): DeepSeekMessage[] {
   return [
     {
       role: "system",
       content: [
         "你是个人知识库的知识整理助手。",
-        "目标：提炼标题、摘要、标签。",
+        "目标：提炼标题、摘要、标签，并给出主题。",
         "必须只输出合法 json，不要输出 markdown、解释、代码块或额外文本。",
-        'json 格式必须严格为 {"title":"","summary":"","tags":[""]}。',
+        'json 格式必须严格为 {"title":"","summary":"","tags":[""],"topic":""}。',
         "规则：",
         "1. title 是适合作为知识卡片的中文标题，尽量控制在 18 个字以内。",
         "2. summary 是 1 到 2 句中文摘要，控制在 40 到 90 个字。",
         "3. tags 输出 2 到 4 个中文短标签，不重复，不带 #。",
-        "4. 如果用户已经填写 title 或 tags，要把它们当作优先约束和上下文，不要机械重复。",
-        "5. 如果原始内容不足以支持判断，也要给出尽量稳妥的标题、摘要和标签。",
+        "4. topic 只输出一个中文主题。",
+        "5. 如果用户已经明确填写 topic，就原样返回，不要改写。",
+        "6. 如果用户没有填写 topic，先尝试从现有主题列表中选择最匹配的一个，只有都不合适时才生成新主题。",
+        "7. 如果用户已经填写 title 或 tags，要把它们当作优先约束和上下文，不要机械重复。",
+        "8. 如果原始内容不足以支持判断，也要给出尽量稳妥的标题、摘要、标签和主题。",
       ].join("\n"),
     },
     {
@@ -65,7 +78,8 @@ export function buildKnowledgeEnrichMessages({
       content: [
         "请基于以下信息做知识整理，并只返回 json。",
         formatOptionalValue("用户已填写标题", title),
-        formatOptionalValue("topic", topic),
+        formatOptionalValue("用户已填写主题", topic),
+        formatAvailableTopics(availableTopics),
         formatOptionalTags(tags),
         "原始内容：",
         content,

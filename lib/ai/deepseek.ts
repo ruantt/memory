@@ -17,6 +17,7 @@ type EnrichKnowledgeInput = {
   topic?: string;
   title?: string;
   tags?: string[];
+  availableTopics?: string[];
 };
 
 type WebpageSummaryInput = {
@@ -39,6 +40,7 @@ export type EnrichedKnowledge = {
   title: string;
   summary: string;
   tags: string[];
+  topic: string;
 };
 
 export type WebpageSummary = {
@@ -163,15 +165,98 @@ function fallbackTags(content: string, topic?: string) {
   return Array.from(nextTags).slice(0, 4);
 }
 
-function normalizeTagArray(tags: unknown) {
-  const values = Array.isArray(tags) ? tags : [];
+function normalizeStringArray(values: unknown) {
+  const resolvedValues = Array.isArray(values) ? values : [];
 
   return Array.from(
     new Set(
-      values
-        .map((tag) => (typeof tag === "string" ? tag.trim() : ""))
+      resolvedValues
+        .map((value) => (typeof value === "string" ? value.trim() : ""))
         .filter(Boolean)
     )
+  );
+}
+
+function normalizeTagArray(tags: unknown) {
+  return normalizeStringArray(tags);
+}
+
+function normalizeTopicValue(topic: unknown) {
+  return typeof topic === "string" ? topic.trim() : "";
+}
+
+function findMatchingTopic(candidate: string, availableTopics: string[]) {
+  const normalizedCandidate = candidate.trim().toLowerCase();
+
+  if (!normalizedCandidate) {
+    return "";
+  }
+
+  return (
+    availableTopics.find(
+      (availableTopic) => availableTopic.trim().toLowerCase() === normalizedCandidate
+    ) || ""
+  );
+}
+
+function findMentionedTopicInContent(content: string, availableTopics: string[]) {
+  const normalizedContent = content.toLowerCase();
+
+  return (
+    availableTopics.find((availableTopic) =>
+      normalizedContent.includes(availableTopic.trim().toLowerCase())
+    ) || ""
+  );
+}
+
+function resolveTopic({
+  userTopic,
+  modelTopic,
+  modelTags,
+  availableTopics,
+  content,
+}: {
+  userTopic?: string;
+  modelTopic: unknown;
+  modelTags: unknown;
+  availableTopics: string[];
+  content: string;
+}) {
+  const normalizedUserTopic = userTopic?.trim();
+
+  if (normalizedUserTopic) {
+    return normalizedUserTopic;
+  }
+
+  const normalizedAvailableTopics = normalizeStringArray(availableTopics);
+  const normalizedModelTopic = normalizeTopicValue(modelTopic);
+  const normalizedModelTags = normalizeTagArray(modelTags);
+  const fallbackTopicCandidates = fallbackTags(content);
+
+  for (const candidate of [
+    normalizedModelTopic,
+    ...normalizedModelTags,
+    ...fallbackTopicCandidates,
+  ]) {
+    const matchedTopic = findMatchingTopic(candidate, normalizedAvailableTopics);
+
+    if (matchedTopic) {
+      return matchedTopic;
+    }
+  }
+
+  const mentionedTopic = findMentionedTopicInContent(content, normalizedAvailableTopics);
+
+  if (mentionedTopic) {
+    return mentionedTopic;
+  }
+
+  return (
+    normalizedModelTopic ||
+    normalizedModelTags[0] ||
+    fallbackTopicCandidates.find((tag) => tag !== "资料整理") ||
+    truncateText(fallbackTitle(content), 12) ||
+    "快速记录"
   );
 }
 
@@ -225,11 +310,13 @@ export async function enrichKnowledgeWithDeepSeek({
   topic,
   title,
   tags,
+  availableTopics,
 }: EnrichKnowledgeInput): Promise<EnrichedKnowledge> {
   const trimmedContent = content.trim();
   const trimmedTopic = topic?.trim();
   const trimmedTitle = title?.trim();
   const normalizedUserTags = normalizeTagArray(tags).slice(0, 4);
+  const normalizedAvailableTopics = normalizeStringArray(availableTopics);
 
   const completion = await createChatCompletion({
     temperature: 0.3,
@@ -240,6 +327,7 @@ export async function enrichKnowledgeWithDeepSeek({
       topic: trimmedTopic,
       title: trimmedTitle,
       tags: normalizedUserTags,
+      availableTopics: normalizedAvailableTopics,
     }),
   });
 
@@ -252,10 +340,17 @@ export async function enrichKnowledgeWithDeepSeek({
   const summary =
     (typeof parsed?.summary === "string" ? parsed.summary.trim() : "") ||
     fallbackSummary(trimmedContent);
+  const resolvedTopic = resolveTopic({
+    userTopic: trimmedTopic,
+    modelTopic: parsed?.topic,
+    modelTags: parsed?.tags,
+    availableTopics: normalizedAvailableTopics,
+    content: trimmedContent,
+  });
   const resolvedTags = mergeTags({
     userTags: normalizedUserTags,
     modelTags: parsed?.tags,
-    topic: trimmedTopic,
+    topic: resolvedTopic,
     content: trimmedContent,
   });
 
@@ -263,6 +358,7 @@ export async function enrichKnowledgeWithDeepSeek({
     title: resolvedTitle,
     summary,
     tags: resolvedTags,
+    topic: resolvedTopic,
   };
 }
 
