@@ -69,7 +69,7 @@ export const uiCopy = {
     header: {
       eyebrow: "工作台",
       title: "围绕已选资料提问、整理与生成",
-      description: "三栏最小版本工作台，左侧支持管理知识库资料、本地资料和网页链接。",
+      description: "",
       focusedSourcePrefix: "当前焦点资料：",
       webFallbackToggle: "允许联网补充",
     },

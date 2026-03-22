@@ -22,7 +22,7 @@ export function Sidebar({
   return (
     <aside className="w-full rounded-[28px] border border-border/70 bg-background/95 p-5 md:max-w-[280px]">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">
             <BookCopy className="size-3.5" />
             {sidebarCopy.badge}

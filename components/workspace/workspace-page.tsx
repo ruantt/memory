@@ -57,9 +57,11 @@ export function WorkspacePage({ focusedSourceId }: WorkspacePageProps) {
               <h1 className="text-2xl font-semibold tracking-tight">
                 {workspaceHeaderCopy.title}
               </h1>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                {workspaceHeaderCopy.description}
-              </p>
+              {workspaceHeaderCopy.description ? (
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  {workspaceHeaderCopy.description}
+                </p>
+              ) : null}
             </div>
 
             <div className="flex flex-col gap-3 xl:items-end">
