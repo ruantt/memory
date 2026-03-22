@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { ChatPanel } from "@/components/workspace/chat-panel";
 import { GenerationPanel } from "@/components/workspace/generation-panel";
 import { SourcesPanel } from "@/components/workspace/sources-panel";
@@ -23,7 +23,14 @@ export function WorkspacePage({ focusedSourceId }: WorkspacePageProps) {
   } = useKnowledge();
   const workspaceHeaderCopy = uiCopy.workspace.header;
   const focusedSource = workspaceSources.find((source) => source.id === focusedSourceId);
-  const sourceCitations = workspaceSources.map(({ id, title }) => ({ id, title }));
+  const sourceCitations = workspaceSources.map((source) => ({
+    id: source.id,
+    title: source.title,
+    scope: "local" as const,
+    sourceType: source.type,
+    ...(source.type === "link" ? { url: source.url } : {}),
+  }));
+  const [allowWebFallback, setAllowWebFallback] = useState(false);
   const syncFocusedKnowledge = useEffectEvent((sourceId: string) => {
     if (items.some((item) => item.id === sourceId)) {
       addKnowledgeSources([sourceId]);
@@ -55,12 +62,26 @@ export function WorkspacePage({ focusedSourceId }: WorkspacePageProps) {
               </p>
             </div>
 
-            {focusedSource ? (
-              <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-                {workspaceHeaderCopy.focusedSourcePrefix}{" "}
-                <span className="font-medium text-foreground">{focusedSource.title}</span>
-              </div>
-            ) : null}
+            <div className="flex flex-col gap-3 xl:items-end">
+              <label className="inline-flex items-center gap-3 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-foreground">
+                <input
+                  type="checkbox"
+                  checked={allowWebFallback}
+                  onChange={(event) => setAllowWebFallback(event.target.checked)}
+                  className="size-4 rounded border-border/80"
+                />
+                <span>{workspaceHeaderCopy.webFallbackToggle}</span>
+              </label>
+
+              {focusedSource ? (
+                <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+                  {workspaceHeaderCopy.focusedSourcePrefix}{" "}
+                  <span className="font-medium text-foreground">
+                    {focusedSource.title}
+                  </span>
+                </div>
+              ) : null}
+            </div>
           </div>
         </header>
 
@@ -78,10 +99,12 @@ export function WorkspacePage({ focusedSourceId }: WorkspacePageProps) {
           <ChatPanel
             sourceCitations={sourceCitations}
             selectedSources={workspaceSources}
+            allowWebFallback={allowWebFallback}
           />
           <GenerationPanel
             sourceCitations={sourceCitations}
             selectedSources={workspaceSources}
+            allowWebFallback={allowWebFallback}
           />
         </div>
       </div>

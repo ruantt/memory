@@ -9,6 +9,8 @@ export type KnowledgeItem = {
 };
 
 export type SourceType = "knowledge" | "file" | "link";
+export type LinkSourceStatus = "loading" | "ready" | "error";
+export type CitationScope = "local" | "web";
 
 export type FileSourceMeta = {
   name: string;
@@ -41,6 +43,13 @@ export type FileSource = WorkspaceSourceBase & {
 export type LinkSource = WorkspaceSourceBase & {
   type: "link";
   url: string;
+  content: string;
+  summary: string;
+  tags: string[];
+  status: LinkSourceStatus;
+  errorMessage?: string;
+  fetchedAt?: string;
+  syncToken?: string;
 };
 
 export type WorkspaceSource = KnowledgeSource | FileSource | LinkSource;
@@ -48,6 +57,9 @@ export type WorkspaceSource = KnowledgeSource | FileSource | LinkSource;
 export type Citation = {
   id: string;
   title: string;
+  scope: CitationScope;
+  sourceType: SourceType | "web";
+  url?: string;
 };
 
 export type Message = {
@@ -55,4 +67,5 @@ export type Message = {
   role: "user" | "assistant";
   content: string;
   citations: Citation[];
+  usedWebFallback?: boolean;
 };

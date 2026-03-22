@@ -109,6 +109,18 @@ function getHostname(url: string) {
   }
 }
 
+function getLinkStatusLabel(source: LinkSource) {
+  if (source.status === "loading") {
+    return uiCopy.workspace.sources.linkStatusLoading;
+  }
+
+  if (source.status === "error") {
+    return uiCopy.workspace.sources.linkStatusError;
+  }
+
+  return uiCopy.workspace.sources.linkStatusReady;
+}
+
 function EmptyStateCard({
   title,
   description,
@@ -498,7 +510,28 @@ export function SourcesPanel({
                         <Badge variant="outline" className="rounded-full">
                           {getHostname(source.url)}
                         </Badge>
+                        <Badge variant="outline" className="rounded-full">
+                          {getLinkStatusLabel(source)}
+                        </Badge>
+                        {source.status === "ready"
+                          ? source.tags.slice(0, 2).map((tag) => (
+                              <Badge
+                                key={`${source.id}-${tag}`}
+                                variant="outline"
+                                className="rounded-full"
+                              >
+                                {tag}
+                              </Badge>
+                            ))
+                          : null}
                       </div>
+                      <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                        {source.status === "loading"
+                          ? sourcesCopy.linkParsingHint
+                          : source.status === "error"
+                            ? source.errorMessage || sourcesCopy.linkResolveError
+                            : truncateText(source.summary || source.url, 88)}
+                      </p>
                       <p className="mt-2 truncate text-xs leading-5 text-muted-foreground">
                         {source.url}
                       </p>
@@ -903,7 +936,17 @@ export function SourcesPanel({
                                 <Badge variant="outline" className="rounded-full">
                                   {getHostname(source.url)}
                                 </Badge>
+                                <Badge variant="outline" className="rounded-full">
+                                  {getLinkStatusLabel(source)}
+                                </Badge>
                               </div>
+                              <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                                {source.status === "loading"
+                                  ? sourcesCopy.linkParsingHint
+                                  : source.status === "error"
+                                    ? source.errorMessage || sourcesCopy.linkResolveError
+                                    : truncateText(source.summary || source.url, 72)}
+                              </p>
                               <a
                                 href={source.url}
                                 target="_blank"

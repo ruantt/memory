@@ -1,17 +1,16 @@
 import { NextResponse } from "next/server";
-import {
-  DeepSeekConfigError,
-  generateWorkspaceContentWithDeepSeek,
-} from "@/lib/ai/deepseek";
+import { DeepSeekConfigError } from "@/lib/ai/deepseek";
 import type { WorkspaceSource } from "@/lib/types";
+import { generateWorkspaceResult } from "@/lib/workspace/service";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
-    const { mode, selectedSources } = (await request.json()) as {
+    const { mode, selectedSources, allowWebFallback } = (await request.json()) as {
       mode?: "summary" | "prd";
       selectedSources?: WorkspaceSource[];
+      allowWebFallback?: boolean;
     };
 
     if (mode !== "summary" && mode !== "prd") {
@@ -21,9 +20,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await generateWorkspaceContentWithDeepSeek({
+    const result = await generateWorkspaceResult({
       mode,
       selectedSources: Array.isArray(selectedSources) ? selectedSources : [],
+      allowWebFallback: Boolean(allowWebFallback),
     });
 
     return NextResponse.json(result);
@@ -31,7 +31,9 @@ export async function POST(request: Request) {
     const message =
       error instanceof DeepSeekConfigError
         ? error.message
-        : "生成失败，请稍后再试。";
+        : error instanceof Error
+          ? error.message
+          : "生成失败，请稍后再试。";
 
     return NextResponse.json({ error: message }, { status: 500 });
   }

@@ -13,16 +13,38 @@ import type { Citation, WorkspaceSource } from "@/lib/types";
 type GenerationPanelProps = {
   sourceCitations: Citation[];
   selectedSources: WorkspaceSource[];
+  allowWebFallback: boolean;
 };
+
+function getCitationGroupLabel(citation: Citation) {
+  if (citation.scope === "web") {
+    return "联网补充";
+  }
+
+  if (citation.sourceType === "knowledge") {
+    return "本地知识库";
+  }
+
+  if (citation.sourceType === "file") {
+    return "本地资料";
+  }
+
+  return "网页链接";
+}
 
 export function GenerationPanel({
   sourceCitations,
   selectedSources,
+  allowWebFallback,
 }: GenerationPanelProps) {
   const generationCopy = uiCopy.workspace.generation;
   const [activeTab, setActiveTab] = useState<"summary" | "prd-outline">("summary");
   const [summaryContent, setSummaryContent] = useState("");
   const [prdContent, setPrdContent] = useState("");
+  const [summaryCitations, setSummaryCitations] = useState<Citation[]>([]);
+  const [prdCitations, setPrdCitations] = useState<Citation[]>([]);
+  const [summaryUsedWebFallback, setSummaryUsedWebFallback] = useState(false);
+  const [prdUsedWebFallback, setPrdUsedWebFallback] = useState(false);
   const [loadingMode, setLoadingMode] = useState<"summary" | "prd" | null>(null);
   const [errors, setErrors] = useState<{ summary?: string; prd?: string }>({});
   const sourceSignature = useMemo(
@@ -38,6 +60,10 @@ export function GenerationPanel({
   useEffect(() => {
     setSummaryContent("");
     setPrdContent("");
+    setSummaryCitations([]);
+    setPrdCitations([]);
+    setSummaryUsedWebFallback(false);
+    setPrdUsedWebFallback(false);
     setErrors({});
   }, [sourceSignature]);
 
@@ -53,12 +79,17 @@ export function GenerationPanel({
       const response = await generateWorkspaceContent({
         mode,
         selectedSources,
+        allowWebFallback,
       });
 
       if (mode === "summary") {
         setSummaryContent(response.content);
+        setSummaryCitations(response.citations);
+        setSummaryUsedWebFallback(response.usedWebFallback);
       } else {
         setPrdContent(response.content);
+        setPrdCitations(response.citations);
+        setPrdUsedWebFallback(response.usedWebFallback);
       }
     } catch (error) {
       setErrors((currentErrors) => ({
@@ -70,6 +101,25 @@ export function GenerationPanel({
       setLoadingMode(null);
     }
   }
+
+  const summaryCitationGroups = Array.from(
+    summaryCitations.reduce((groups, citation) => {
+      const groupLabel = getCitationGroupLabel(citation);
+      const groupItems = groups.get(groupLabel) ?? [];
+      groupItems.push(citation);
+      groups.set(groupLabel, groupItems);
+      return groups;
+    }, new Map<string, Citation[]>())
+  );
+  const prdCitationGroups = Array.from(
+    prdCitations.reduce((groups, citation) => {
+      const groupLabel = getCitationGroupLabel(citation);
+      const groupItems = groups.get(groupLabel) ?? [];
+      groupItems.push(citation);
+      groups.set(groupLabel, groupItems);
+      return groups;
+    }, new Map<string, Citation[]>())
+  );
 
   return (
     <aside className="flex h-full min-h-[72vh] flex-col overflow-hidden rounded-[28px] border border-border/70 bg-background/95 xl:min-h-0">
@@ -121,7 +171,7 @@ export function GenerationPanel({
               <Button
                 variant="outline"
                 onClick={() => handleGenerate("summary")}
-                disabled={loadingMode !== null || sourceCitations.length === 0}
+                disabled={loadingMode !== null}
               >
                 {loadingMode === "summary" ? "生成中..." : "生成总结"}
               </Button>
@@ -135,28 +185,70 @@ export function GenerationPanel({
 
             {loadingMode === "summary" ? (
               <div className="rounded-[22px] border border-border/70 bg-muted/20 p-4 text-sm leading-7 text-muted-foreground">
-                AI 正在基于当前已选资料生成总结...
+                {allowWebFallback
+                  ? "AI 正在分析资料，必要时会联网补充后生成总结..."
+                  : "AI 正在基于当前已选资料生成总结..."}
               </div>
             ) : null}
 
             {!summaryContent && loadingMode !== "summary" && !errors.summary ? (
               <div className="rounded-[22px] border border-dashed border-border/70 bg-muted/20 p-4 text-sm leading-7 text-muted-foreground">
                 {sourceCitations.length > 0
-                  ? "点击上方按钮，基于当前已选资料生成真实总结。"
-                  : generationCopy.sourcesEmpty}
+                  ? allowWebFallback
+                    ? generationCopy.summaryHintWithWebFallback
+                    : "点击上方按钮，基于当前已选资料生成真实总结。"
+                  : allowWebFallback
+                    ? generationCopy.emptyHintWithWebFallback
+                    : generationCopy.sourcesEmpty}
               </div>
             ) : null}
 
-            {summaryContent && loadingMode !== "summary"
-              ? summaryParagraphs.map((paragraph) => (
+            {summaryUsedWebFallback && summaryContent && loadingMode !== "summary" ? (
+              <div className="rounded-[22px] border border-border/70 bg-muted/20 p-4">
+                <Badge variant="outline" className="rounded-full">
+                  已使用联网补充
+                </Badge>
+              </div>
+            ) : null}
+
+            {summaryContent && loadingMode !== "summary" ? (
+              <>
+                {summaryParagraphs.map((paragraph) => (
                   <div
                     key={paragraph}
                     className="rounded-[22px] border border-border/70 bg-muted/20 p-4 text-sm leading-7 text-foreground"
                   >
                     {paragraph}
                   </div>
-                ))
-              : null}
+                ))}
+
+                {summaryCitationGroups.length > 0 ? (
+                  <div className="rounded-[22px] border border-border/70 bg-muted/20 p-4">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {generationCopy.sourcesLabel}
+                    </p>
+                    <div className="mt-3 space-y-3">
+                      {summaryCitationGroups.map(([groupLabel, citations]) => (
+                        <div key={groupLabel} className="space-y-2">
+                          <p className="text-xs text-muted-foreground">{groupLabel}</p>
+                          <div className="flex flex-wrap gap-2">
+                            {citations.map((citation) => (
+                              <Badge
+                                key={citation.id}
+                                variant="outline"
+                                className="rounded-full"
+                              >
+                                {citation.title}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </>
+            ) : null}
           </div>
         </TabsContent>
 
@@ -169,7 +261,7 @@ export function GenerationPanel({
               <Button
                 variant="outline"
                 onClick={() => handleGenerate("prd")}
-                disabled={loadingMode !== null || sourceCitations.length === 0}
+                disabled={loadingMode !== null}
               >
                 {loadingMode === "prd" ? "生成中..." : "生成 PRD 提纲"}
               </Button>
@@ -183,20 +275,35 @@ export function GenerationPanel({
 
             {loadingMode === "prd" ? (
               <div className="rounded-[22px] border border-border/70 bg-muted/20 p-4 text-sm leading-7 text-muted-foreground">
-                AI 正在基于当前已选资料生成 PRD 提纲...
+                {allowWebFallback
+                  ? "AI 正在分析资料，必要时会联网补充后生成 PRD 提纲..."
+                  : "AI 正在基于当前已选资料生成 PRD 提纲..."}
               </div>
             ) : null}
 
             {!prdContent && loadingMode !== "prd" && !errors.prd ? (
               <div className="rounded-[22px] border border-dashed border-border/70 bg-muted/20 p-4 text-sm leading-7 text-muted-foreground">
                 {sourceCitations.length > 0
-                  ? "点击上方按钮，基于当前已选资料生成真实 PRD 提纲。"
-                  : generationCopy.sourcesEmpty}
+                  ? allowWebFallback
+                    ? generationCopy.prdHintWithWebFallback
+                    : "点击上方按钮，基于当前已选资料生成真实 PRD 提纲。"
+                  : allowWebFallback
+                    ? generationCopy.emptyHintWithWebFallback
+                    : generationCopy.sourcesEmpty}
               </div>
             ) : null}
 
-            {prdContent && loadingMode !== "prd"
-              ? prdSections.map((section) => (
+            {prdUsedWebFallback && prdContent && loadingMode !== "prd" ? (
+              <div className="rounded-[22px] border border-border/70 bg-muted/20 p-4">
+                <Badge variant="outline" className="rounded-full">
+                  已使用联网补充
+                </Badge>
+              </div>
+            ) : null}
+
+            {prdContent && loadingMode !== "prd" ? (
+              <>
+                {prdSections.map((section) => (
                   <section
                     key={`${section.heading}-${section.items.join("-")}`}
                     className="rounded-[22px] border border-border/70 bg-muted/20 p-4"
@@ -216,8 +323,35 @@ export function GenerationPanel({
                       ))}
                     </ul>
                   </section>
-                ))
-              : null}
+                ))}
+
+                {prdCitationGroups.length > 0 ? (
+                  <div className="rounded-[22px] border border-border/70 bg-muted/20 p-4">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {generationCopy.sourcesLabel}
+                    </p>
+                    <div className="mt-3 space-y-3">
+                      {prdCitationGroups.map(([groupLabel, citations]) => (
+                        <div key={groupLabel} className="space-y-2">
+                          <p className="text-xs text-muted-foreground">{groupLabel}</p>
+                          <div className="flex flex-wrap gap-2">
+                            {citations.map((citation) => (
+                              <Badge
+                                key={citation.id}
+                                variant="outline"
+                                className="rounded-full"
+                              >
+                                {citation.title}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </>
+            ) : null}
           </div>
         </TabsContent>
       </Tabs>

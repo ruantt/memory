@@ -5,12 +5,12 @@ import {
 } from "@/lib/ai/config";
 import {
   buildKnowledgeEnrichMessages,
+  buildWebpageSummaryMessages,
   buildWorkspaceChatMessages,
   buildWorkspaceGenerateMessages,
 } from "@/lib/ai/prompts";
-import type { Citation, WorkspaceSource } from "@/lib/types";
 
-const MAX_SOURCE_SNIPPET_LENGTH = 1200;
+const MAX_WEBPAGE_SNIPPET_LENGTH = 5000;
 
 type EnrichKnowledgeInput = {
   content: string;
@@ -19,14 +19,20 @@ type EnrichKnowledgeInput = {
   tags?: string[];
 };
 
+type WebpageSummaryInput = {
+  url: string;
+  extractedTitle?: string;
+  content: string;
+};
+
 type WorkspaceChatInput = {
   question: string;
-  selectedSources: WorkspaceSource[];
+  sourceContext: string;
 };
 
 type WorkspaceGenerateInput = {
   mode: "summary" | "prd";
-  selectedSources: WorkspaceSource[];
+  sourceContext: string;
 };
 
 export type EnrichedKnowledge = {
@@ -35,9 +41,14 @@ export type EnrichedKnowledge = {
   tags: string[];
 };
 
+export type WebpageSummary = {
+  title: string;
+  summary: string;
+  tags: string[];
+};
+
 export type WorkspaceChatResult = {
   answer: string;
-  citations: Citation[];
 };
 
 export type WorkspaceGenerateResult = {
@@ -103,13 +114,13 @@ function safeParseJson(value: string) {
 
 function fallbackTitle(content: string) {
   const normalized = content.replace(/\s+/g, " ").trim();
-  const firstLine = normalized.split(/[。！？!?]/)[0]?.trim() || normalized;
+  const firstLine = normalized.split(/[。！？?!]/)[0]?.trim() || normalized;
 
   if (!firstLine) {
-    return "未命名知识";
+    return "未命名资料";
   }
 
-  return truncateText(firstLine, 18) || "未命名知识";
+  return truncateText(firstLine, 24) || "未命名资料";
 }
 
 function fallbackSummary(content: string) {
@@ -119,7 +130,7 @@ function fallbackSummary(content: string) {
     return "暂无摘要。";
   }
 
-  return truncateText(normalized, 88) || "暂无摘要。";
+  return truncateText(normalized, 100) || "暂无摘要。";
 }
 
 function fallbackTags(content: string, topic?: string) {
@@ -138,6 +149,7 @@ function fallbackTags(content: string, topic?: string) {
     { keyword: "竞品", tag: "竞品分析" },
     { keyword: "ai", tag: "AI" },
     { keyword: "总结", tag: "总结" },
+    { keyword: "网页", tag: "网页资料" },
   ];
 
   keywordMap.forEach(({ keyword, tag }) => {
@@ -146,7 +158,7 @@ function fallbackTags(content: string, topic?: string) {
     }
   });
 
-  nextTags.add("知识整理");
+  nextTags.add("资料整理");
 
   return Array.from(nextTags).slice(0, 4);
 }
@@ -183,59 +195,6 @@ function mergeTags({
   );
 
   return merged.slice(0, 4);
-}
-
-function buildSourceContext(selectedSources: WorkspaceSource[]) {
-  return selectedSources
-    .map((source, index) => {
-      const baseLines = [
-        `资料 ${index + 1}`,
-        `ID: ${source.id}`,
-        `类型: ${source.type}`,
-        `标题: ${source.title}`,
-      ];
-
-      if (source.topic) {
-        baseLines.push(`主题: ${source.topic}`);
-      }
-
-      if (source.tags?.length) {
-        baseLines.push(`标签: ${source.tags.join("、")}`);
-      }
-
-      if (source.summary) {
-        baseLines.push(`摘要: ${truncateText(source.summary, 220)}`);
-      }
-
-      if (source.type === "knowledge") {
-        baseLines.push(
-          `正文: ${truncateText(
-            source.content ?? source.summary ?? "",
-            MAX_SOURCE_SNIPPET_LENGTH
-          )}`
-        );
-      }
-
-      if (source.type === "file") {
-        baseLines.push(`文件类型: ${source.fileMeta.type}`);
-        baseLines.push(`文件大小: ${source.fileMeta.size}`);
-        baseLines.push("可用信息: 仅文件元信息，未解析文件正文");
-      }
-
-      if (source.type === "link") {
-        baseLines.push(`链接: ${source.url}`);
-        baseLines.push("可用信息: 仅链接标题和 URL，未抓取网页正文");
-      }
-
-      return baseLines.join("\n");
-    })
-    .join("\n\n");
-}
-
-function buildDefaultCitations(selectedSources: WorkspaceSource[]) {
-  return Array.from(
-    new Map(selectedSources.map(({ id, title }) => [id, { id, title }])).values()
-  );
 }
 
 async function createChatCompletion({
@@ -307,16 +266,54 @@ export async function enrichKnowledgeWithDeepSeek({
   };
 }
 
+export async function summarizeWebpageWithDeepSeek({
+  url,
+  extractedTitle,
+  content,
+}: WebpageSummaryInput): Promise<WebpageSummary> {
+  const trimmedContent = content.trim();
+  const trimmedTitle = extractedTitle?.trim();
+
+  const completion = await createChatCompletion({
+    temperature: 0.3,
+    maxTokens: 450,
+    responseFormat: { type: "json_object" },
+    messages: buildWebpageSummaryMessages({
+      url: url.trim(),
+      extractedTitle: trimmedTitle,
+      content: truncateText(trimmedContent, MAX_WEBPAGE_SNIPPET_LENGTH),
+    }),
+  });
+
+  const contentText = completion.choices[0]?.message?.content?.trim() || "";
+  const parsed = safeParseJson(contentText);
+
+  return {
+    title:
+      (typeof parsed?.title === "string" ? parsed.title.trim() : "") ||
+      trimmedTitle ||
+      fallbackTitle(trimmedContent),
+    summary:
+      (typeof parsed?.summary === "string" ? parsed.summary.trim() : "") ||
+      fallbackSummary(trimmedContent),
+    tags: mergeTags({
+      userTags: [],
+      modelTags: parsed?.tags,
+      content: trimmedContent,
+    }),
+  };
+}
+
 export async function answerWorkspaceChatWithDeepSeek({
   question,
-  selectedSources,
+  sourceContext,
 }: WorkspaceChatInput): Promise<WorkspaceChatResult> {
   const trimmedQuestion = question.trim();
+  const trimmedSourceContext = sourceContext.trim();
 
-  if (selectedSources.length === 0) {
+  if (!trimmedSourceContext) {
     return {
-      answer: "当前还没有选中任何资料，暂时无法基于资料回答。请先在左侧添加资料后再提问。",
-      citations: [],
+      answer: "当前资料不足，暂时无法生成有效回答。",
     };
   }
 
@@ -325,27 +322,26 @@ export async function answerWorkspaceChatWithDeepSeek({
     maxTokens: 900,
     messages: buildWorkspaceChatMessages({
       question: trimmedQuestion,
-      sourceContext: buildSourceContext(selectedSources),
+      sourceContext: trimmedSourceContext,
     }),
   });
 
-  const answer =
-    completion.choices[0]?.message?.content?.trim() ||
-    "根据当前已选资料，暂时无法生成有效回答。";
-
   return {
-    answer,
-    citations: buildDefaultCitations(selectedSources),
+    answer:
+      completion.choices[0]?.message?.content?.trim() ||
+      "根据当前资料，暂时无法生成有效回答。",
   };
 }
 
 export async function generateWorkspaceContentWithDeepSeek({
   mode,
-  selectedSources,
+  sourceContext,
 }: WorkspaceGenerateInput): Promise<WorkspaceGenerateResult> {
-  if (selectedSources.length === 0) {
+  const trimmedSourceContext = sourceContext.trim();
+
+  if (!trimmedSourceContext) {
     return {
-      content: "当前还没有选中任何资料，暂时无法生成内容。请先在左侧添加资料。",
+      content: "当前资料不足，暂时无法生成内容。",
     };
   }
 
@@ -354,7 +350,7 @@ export async function generateWorkspaceContentWithDeepSeek({
     maxTokens: 1200,
     messages: buildWorkspaceGenerateMessages({
       mode,
-      sourceContext: buildSourceContext(selectedSources),
+      sourceContext: trimmedSourceContext,
     }),
   });
 

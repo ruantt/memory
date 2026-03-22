@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState } from "react";
+import { fetchWebSource } from "@/lib/ai/api";
 import { uiCopy } from "@/lib/copy/zh-cn";
 import { initialKnowledgeItems } from "@/lib/mock-data";
 import type {
@@ -90,6 +91,30 @@ function normalizeUrl(url: string) {
   return `https://${trimmedUrl}`;
 }
 
+function createPendingLinkSource({
+  id,
+  title,
+  url,
+  syncToken,
+}: {
+  id: string;
+  title: string;
+  url: string;
+  syncToken: string;
+}): LinkSource {
+  return {
+    id,
+    type: "link",
+    title,
+    url,
+    content: "",
+    summary: "",
+    tags: [],
+    status: "loading",
+    syncToken,
+  };
+}
+
 export function KnowledgeProvider({
   children,
 }: Readonly<{
@@ -101,6 +126,71 @@ export function KnowledgeProvider({
   const [workspaceSources, setWorkspaceSources] = useState<WorkspaceSource[]>(() =>
     initialKnowledgeItems.slice(0, 2).map(createKnowledgeSource)
   );
+
+  const syncLinkSource = async ({
+    id,
+    url,
+    syncToken,
+    preferredTitle,
+  }: {
+    id: string;
+    url: string;
+    syncToken: string;
+    preferredTitle?: string;
+  }) => {
+    try {
+      const response = await fetchWebSource({ url });
+
+      setWorkspaceSources((currentSources) =>
+        currentSources.map((source) => {
+          if (
+            source.type !== "link" ||
+            source.id !== id ||
+            source.syncToken !== syncToken
+          ) {
+            return source;
+          }
+
+          return {
+            ...source,
+            title: preferredTitle || response.title || source.title,
+            url: response.url,
+            content: response.content,
+            summary: response.summary,
+            tags: response.tags,
+            status: "ready",
+            errorMessage: undefined,
+            fetchedAt: response.fetchedAt,
+          };
+        })
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : workspaceSourcesCopy.linkResolveError;
+
+      setWorkspaceSources((currentSources) =>
+        currentSources.map((source) => {
+          if (
+            source.type !== "link" ||
+            source.id !== id ||
+            source.syncToken !== syncToken
+          ) {
+            return source;
+          }
+
+          return {
+            ...source,
+            status: "error",
+            errorMessage,
+            content: "",
+            summary: "",
+            tags: [],
+            fetchedAt: undefined,
+          };
+        })
+      );
+    }
+  };
 
   const addKnowledge = ({
     title,
@@ -191,15 +281,22 @@ export function KnowledgeProvider({
       return;
     }
 
-    const nextSource: LinkSource = {
-      id: crypto.randomUUID(),
-      type: "link",
-      title:
-        trimmedTitle || normalizedUrl || workspaceSourcesCopy.linkUntitled,
+    const sourceId = crypto.randomUUID();
+    const syncToken = crypto.randomUUID();
+    const nextSource = createPendingLinkSource({
+      id: sourceId,
+      title: trimmedTitle || normalizedUrl || workspaceSourcesCopy.linkUntitled,
       url: normalizedUrl,
-    };
+      syncToken,
+    });
 
     setWorkspaceSources((currentSources) => [nextSource, ...currentSources]);
+    void syncLinkSource({
+      id: sourceId,
+      url: normalizedUrl,
+      syncToken,
+      preferredTitle: trimmedTitle || undefined,
+    });
   };
 
   const updateLinkSource = (id: string, { title, url }: LinkSourceInput) => {
@@ -209,6 +306,8 @@ export function KnowledgeProvider({
     if (!normalizedUrl) {
       return;
     }
+
+    const syncToken = crypto.randomUUID();
 
     setWorkspaceSources((currentSources) =>
       currentSources.map((source) => {
@@ -221,9 +320,23 @@ export function KnowledgeProvider({
           title:
             trimmedTitle || normalizedUrl || workspaceSourcesCopy.linkUntitled,
           url: normalizedUrl,
+          content: "",
+          summary: "",
+          tags: [],
+          status: "loading",
+          errorMessage: undefined,
+          fetchedAt: undefined,
+          syncToken,
         };
       })
     );
+
+    void syncLinkSource({
+      id,
+      url: normalizedUrl,
+      syncToken,
+      preferredTitle: trimmedTitle || undefined,
+    });
   };
 
   const removeWorkspaceSource = (id: string) => {

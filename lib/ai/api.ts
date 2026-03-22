@@ -16,20 +16,40 @@ type EnrichKnowledgeResponse = {
 type WorkspaceChatPayload = {
   question: string;
   selectedSources: WorkspaceSource[];
+  allowWebFallback?: boolean;
 };
 
 type WorkspaceChatResponse = {
   answer: string;
   citations: Citation[];
+  usedWebFallback: boolean;
+  insufficiencyReason?: string;
 };
 
 type WorkspaceGeneratePayload = {
   mode: "summary" | "prd";
   selectedSources: WorkspaceSource[];
+  allowWebFallback?: boolean;
 };
 
 type WorkspaceGenerateResponse = {
   content: string;
+  citations: Citation[];
+  usedWebFallback: boolean;
+  insufficiencyReason?: string;
+};
+
+type FetchWebSourcePayload = {
+  url: string;
+};
+
+type FetchWebSourceResponse = {
+  title: string;
+  url: string;
+  content: string;
+  summary: string;
+  tags: string[];
+  fetchedAt: string;
 };
 
 async function postJson<TResponse>(
@@ -65,4 +85,8 @@ export function chatWithWorkspace(payload: WorkspaceChatPayload) {
 
 export function generateWorkspaceContent(payload: WorkspaceGeneratePayload) {
   return postJson<WorkspaceGenerateResponse>("/api/workspace/generate", payload);
+}
+
+export function fetchWebSource(payload: FetchWebSourcePayload) {
+  return postJson<FetchWebSourceResponse>("/api/web/fetch", payload);
 }

@@ -13,9 +13,30 @@ import { cn } from "@/lib/utils";
 type ChatPanelProps = {
   sourceCitations: Citation[];
   selectedSources: WorkspaceSource[];
+  allowWebFallback: boolean;
 };
 
-export function ChatPanel({ sourceCitations, selectedSources }: ChatPanelProps) {
+function getCitationGroupLabel(citation: Citation) {
+  if (citation.scope === "web") {
+    return "联网补充";
+  }
+
+  if (citation.sourceType === "knowledge") {
+    return "本地知识库";
+  }
+
+  if (citation.sourceType === "file") {
+    return "本地资料";
+  }
+
+  return "网页链接";
+}
+
+export function ChatPanel({
+  sourceCitations,
+  selectedSources,
+  allowWebFallback,
+}: ChatPanelProps) {
   const chatCopy = uiCopy.workspace.chat;
   const [messages, setMessages] = useState<Message[]>([]);
   const [prompt, setPrompt] = useState("");
@@ -57,6 +78,7 @@ export function ChatPanel({ sourceCitations, selectedSources }: ChatPanelProps) 
       const response = await chatWithWorkspace({
         question: trimmedPrompt,
         selectedSources,
+        allowWebFallback,
       });
 
       setMessages((currentMessages) =>
@@ -66,6 +88,7 @@ export function ChatPanel({ sourceCitations, selectedSources }: ChatPanelProps) 
                 ...message,
                 content: response.answer,
                 citations: response.citations,
+                usedWebFallback: response.usedWebFallback,
               }
             : message
         )
@@ -108,18 +131,30 @@ export function ChatPanel({ sourceCitations, selectedSources }: ChatPanelProps) 
           <div className="rounded-[22px] border border-dashed border-border/70 bg-muted/20 p-4 text-sm leading-7 text-muted-foreground">
             {sourceCitations.length > 0
               ? "已接入真实问答。现在可以基于左侧已选资料直接提问。"
-              : "先在左侧选择资料，再开始提问。"}
+              : allowWebFallback
+                ? "可直接提问；如果本地资料不足，系统会按需联网补充。"
+                : "先在左侧选择资料，再开始提问。"}
           </div>
         ) : null}
 
         {messages.map((message) => {
           const isAssistant = message.role === "assistant";
-          const resolvedCitations = message.citations
-            .filter((citation) => sourceCitationMap.has(citation.id))
-            .map((citation) => ({
-              ...citation,
-              title: sourceCitationMap.get(citation.id) ?? citation.title,
-            }));
+          const resolvedCitations = message.citations.map((citation) => ({
+            ...citation,
+            title: sourceCitationMap.get(citation.id) ?? citation.title,
+          }));
+          const citationGroups = Array.from(
+            resolvedCitations.reduce(
+              (groups, citation) => {
+                const groupLabel = getCitationGroupLabel(citation);
+                const groupItems = groups.get(groupLabel) ?? [];
+                groupItems.push(citation);
+                groups.set(groupLabel, groupItems);
+                return groups;
+              },
+              new Map<string, Citation[]>()
+            )
+          );
 
           return (
             <div
@@ -134,6 +169,14 @@ export function ChatPanel({ sourceCitations, selectedSources }: ChatPanelProps) 
                     : "bg-primary text-primary-foreground"
                 )}
               >
+                {isAssistant && message.usedWebFallback ? (
+                  <div className="mb-3">
+                    <Badge variant="outline" className="rounded-full">
+                      已使用联网补充
+                    </Badge>
+                  </div>
+                ) : null}
+
                 <p className="whitespace-pre-wrap">{message.content}</p>
 
                 {isAssistant && resolvedCitations.length > 0 ? (
@@ -141,11 +184,22 @@ export function ChatPanel({ sourceCitations, selectedSources }: ChatPanelProps) 
                     <p className="text-xs font-medium text-muted-foreground">
                       {chatCopy.citationsLabel}
                     </p>
-                    <div className="flex flex-wrap gap-2">
-                      {resolvedCitations.map((citation) => (
-                        <Badge key={citation.id} variant="outline" className="rounded-full">
-                          {citation.title}
-                        </Badge>
+                    <div className="space-y-2">
+                      {citationGroups.map(([groupLabel, citations]) => (
+                        <div key={groupLabel} className="space-y-2">
+                          <p className="text-xs text-muted-foreground">{groupLabel}</p>
+                          <div className="flex flex-wrap gap-2">
+                            {citations.map((citation) => (
+                              <Badge
+                                key={citation.id}
+                                variant="outline"
+                                className="rounded-full"
+                              >
+                                {citation.title}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -168,10 +222,16 @@ export function ChatPanel({ sourceCitations, selectedSources }: ChatPanelProps) 
           <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted-foreground">
               {isLoading
-                ? "AI 正在基于已选资料生成回答..."
+                ? allowWebFallback
+                  ? "AI 正在分析资料，必要时会联网补充..."
+                  : "AI 正在基于已选资料生成回答..."
                 : sourceCitations.length > 0
-                  ? chatCopy.hint
-                  : chatCopy.emptyHint}
+                  ? allowWebFallback
+                    ? chatCopy.hintWithWebFallback
+                    : chatCopy.hint
+                  : allowWebFallback
+                    ? chatCopy.emptyHintWithWebFallback
+                    : chatCopy.emptyHint}
             </p>
             <Button onClick={handleSend} disabled={isLoading || !prompt.trim()}>
               <SendHorizontal className="size-4" />

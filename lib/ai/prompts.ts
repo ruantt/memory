@@ -10,6 +10,12 @@ type KnowledgeEnrichPromptInput = {
   tags?: string[];
 };
 
+type WebpageSummaryPromptInput = {
+  url: string;
+  extractedTitle?: string;
+  content: string;
+};
+
 type WorkspaceChatPromptInput = {
   question: string;
   sourceContext: string;
@@ -68,6 +74,40 @@ export function buildKnowledgeEnrichMessages({
   ];
 }
 
+export function buildWebpageSummaryMessages({
+  url,
+  extractedTitle,
+  content,
+}: WebpageSummaryPromptInput): DeepSeekMessage[] {
+  return [
+    {
+      role: "system",
+      content: [
+        "你是网页资料整理助手。",
+        "目标：基于网页正文提炼标题、摘要、标签。",
+        "必须只输出合法 json，不要输出 markdown、解释、代码块或额外文本。",
+        'json 格式必须严格为 {"title":"","summary":"","tags":[""]}。',
+        "规则：",
+        "1. title 优先使用更准确、更适合作为资料标题的中文表述，尽量控制在 24 个字以内。",
+        "2. summary 输出 1 到 2 句中文摘要，控制在 50 到 120 个字。",
+        "3. tags 输出 2 到 4 个中文短标签，不重复，不带 #。",
+        "4. 只能基于提供的网页内容提炼，不要补充正文中不存在的事实。",
+        "5. 如果正文信息有限，也要尽量给出稳妥结果。",
+      ].join("\n"),
+    },
+    {
+      role: "user",
+      content: [
+        "请基于以下网页信息整理，并只返回 json。",
+        formatOptionalValue("网页链接", url),
+        formatOptionalValue("抽取标题", extractedTitle),
+        "网页正文：",
+        content,
+      ].join("\n\n"),
+    },
+  ];
+}
+
 export function buildWorkspaceChatMessages({
   question,
   sourceContext,
@@ -77,18 +117,19 @@ export function buildWorkspaceChatMessages({
       role: "system",
       content: [
         "你是个人知识库工作台中的问答助手。",
-        "目标：只基于已选资料回答问题。",
+        "目标：只基于提供资料回答问题。",
         "规则：",
         "1. 只能使用提供的资料内容，不要补充外部常识，不要编造资料中没有的信息。",
-        "2. 某些资料可能只有文件元信息或链接元信息，这不代表你看过文件正文或网页正文。",
-        '3. 如果资料不足，请明确写出“根据当前已选资料，暂时无法确认”，并补充说明还缺什么信息。',
-        "4. 输出中文，简洁自然，适合直接显示在聊天区。",
+        "2. 资料可能同时包含本地资料和联网补充资料；如果联网补充存在，可以使用，但语气要更谨慎。",
+        "3. 某些资料可能只有文件元信息或未解析完成的链接信息，这不代表你看过正文。",
+        '4. 如果资料仍不足，请明确写出“根据当前资料，暂时无法确认”，并补充说明还缺什么信息。',
+        "5. 输出中文，简洁自然，适合直接显示在聊天区。",
       ].join("\n"),
     },
     {
       role: "user",
       content: [
-        "以下是当前已选资料，请只基于这些资料回答。",
+        "以下是当前可用资料，请只基于这些资料回答。",
         sourceContext,
         "",
         `用户问题：${question}`,
@@ -122,19 +163,20 @@ export function buildWorkspaceGenerateMessages({
       role: "system",
       content: [
         "你是个人知识库工作台的内容生成助手。",
-        "目标：根据已选资料生成内容。",
+        "目标：根据提供资料生成内容。",
         "规则：",
         "1. 只能根据提供资料生成，不要补充资料中没有依据的事实。",
-        "2. 某些资料可能只有文件元信息或链接元信息，不要假装看过正文。",
-        "3. 资料不足时，要明确写出“待补充”或“基于当前资料的假设”。",
-        "4. 输出中文，自然、清晰，适合产品工作流。",
+        "2. 资料可能同时包含本地资料和联网补充资料；如果联网补充存在，可以参考，但不要把它伪装成本地资料。",
+        "3. 某些资料可能只有文件元信息或未解析完成的链接信息，不要假装看过正文。",
+        "4. 资料不足时，要明确写出“待补充”或“基于当前资料的假设”。",
+        "5. 输出中文，自然、清晰，适合产品工作流。",
         ...modeInstruction,
       ].join("\n"),
     },
     {
       role: "user",
       content: [
-        "以下是当前已选资料，请基于这些资料完成生成。",
+        "以下是当前可用资料，请基于这些资料完成生成。",
         sourceContext,
         "",
         `生成模式：${mode === "summary" ? "总结" : "PRD 提纲"}`,
